@@ -10,7 +10,7 @@ interface SearchBarProps {
 export const SearchBar: React.FC<SearchBarProps> = ({ 
   value, 
   onChange, 
-  placeholder = "Search businesses..." 
+  placeholder = "Buscar descuento..." 
 }) => {
   return (
     <div className="relative w-full max-w-2xl mx-auto">

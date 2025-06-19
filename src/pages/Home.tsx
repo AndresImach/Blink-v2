@@ -41,12 +41,38 @@ function Home() {
     setSearchTerm,
     selectedCategory,
     setSelectedCategory,
-    filteredBusinesses,
+    filteredBusinesses: filteredByCategory
   } = useBusinessFilter(businesses);
 
-  // Convert categories to correct type
-  const categories: { value: Category; label: string }[] =
-    rawCategories as { value: Category; label: string }[];
+  // Custom filter for each special category
+  let finalBusinesses = filteredByCategory;
+  if (selectedCategory === 'gastronomia') {
+    finalBusinesses = businesses.filter(b => b.category && b.category.toLowerCase().includes('gastronom'));
+  } else if (selectedCategory === 'moda') {
+    finalBusinesses = businesses.filter(b => b.category && b.category.toLowerCase().includes('moda'));
+  } else if (selectedCategory === 'entretenimiento') {
+    finalBusinesses = businesses.filter(b => b.category && b.category.toLowerCase().includes('entretenimiento'));
+  } else if (selectedCategory === 'otros') {
+    finalBusinesses = businesses.filter(b => b.category && b.category.toLowerCase().includes('otros'));
+  } else if (selectedCategory === 'deportes') {
+    finalBusinesses = businesses.filter(b => b.category && b.category.toLowerCase().includes('deporte'));
+  } else if (selectedCategory === 'regalos') {
+    finalBusinesses = businesses.filter(b => b.category && b.category.toLowerCase().includes('regalo'));
+  } else if (selectedCategory === 'viajes') {
+    finalBusinesses = businesses.filter(b => b.category && b.category.toLowerCase().includes('viaje'));
+  } else if (selectedCategory === 'automotores') {
+    finalBusinesses = businesses.filter(b => b.category && b.category.toLowerCase().includes('automotor'));
+  } else if (selectedCategory === 'belleza') {
+    finalBusinesses = businesses.filter(b => b.category && b.category.toLowerCase().includes('belleza'));
+  } else if (selectedCategory === 'jugueterias') {
+    finalBusinesses = businesses.filter(b => b.category && b.category.toLowerCase().includes('jugueter'));
+  } else if (selectedCategory === 'hogar') {
+    finalBusinesses = businesses.filter(b => b.category && b.category.toLowerCase().includes('hogar') || b.category.toLowerCase().includes('deco'));
+  } else if (selectedCategory === 'electro') {
+    finalBusinesses = businesses.filter(b => b.category && b.category.toLowerCase().includes('electro') || b.category.toLowerCase().includes('tecnolog'));
+  } else if (selectedCategory === 'shopping') {
+    finalBusinesses = businesses.filter(b => b.category && b.category.toLowerCase().includes('shopping'));
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -54,27 +80,27 @@ function Home() {
       <main className="max-w-4xl mx-auto py-8 px-4">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
           <SearchBar value={searchTerm} onChange={setSearchTerm} />
-          <CategoryDropdown
-            options={categories}
-            value={selectedCategory}
-            onChange={setSelectedCategory}
-          />
+          <div className="flex justify-center w-full md:w-auto">
+            <CategoryDropdown
+              value={selectedCategory}
+              onChange={setSelectedCategory}
+              options={rawCategories.map((cat: any) => ({ value: cat.value, label: cat.label }))}
+            />
+          </div>
         </div>
         {isLoading ? (
           <div className="text-center text-gray-500">Loading businesses...</div>
         ) : error ? (
           <div className="text-center text-red-500">{error}</div>
-        ) : filteredBusinesses.length === 0 ? (
+        ) : finalBusinesses.length === 0 ? (
           <div className="text-center text-gray-500">No businesses found.</div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {filteredBusinesses.map((business) => (
-              <BusinessCard
+            {finalBusinesses.map((business) => (
+              <BusinessCard 
                 key={business.id}
                 business={business}
-                onBenefitClick={(benefitIndex) =>
-                  navigate(`/benefit/${business.id}/${benefitIndex}`)
-                }
+                onBenefitClick={(benefitIndex) => navigate(`/benefit/${business.id}/${benefitIndex}`)}
               />
             ))}
           </div>

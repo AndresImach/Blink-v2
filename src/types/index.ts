@@ -18,4 +18,18 @@ export interface Business {
   benefits: BankBenefit[];
 }
 
-export type Category = 'all' | 'restaurants' | 'retail' | 'gas' | 'grocery' | 'travel' | 'entertainment';
+export type Category =
+  | 'all'
+  | 'gastronomia'
+  | 'moda'
+  | 'entretenimiento'
+  | 'otros'
+  | 'deportes'
+  | 'regalos'
+  | 'viajes'
+  | 'automotores'
+  | 'belleza'
+  | 'jugueterias'
+  | 'hogar'
+  | 'electro'
+  | 'shopping';

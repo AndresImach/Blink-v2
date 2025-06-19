@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Business, BankBenefit } from "../types";
 import { fetchBusinesses } from "../services/api";
 import { ArrowLeft } from "lucide-react";
+import LoadingSpinner from "../components/LoadingSpinner";
 
 function Benefit() {
   const { id, benefitIndex } = useParams<{ id: string; benefitIndex: string }>();
@@ -35,7 +36,7 @@ function Benefit() {
     load();
   }, [id, benefitIndex]);
 
-  if (loading) return <div className="text-center">Loading...</div>;
+  if (loading) return <LoadingSpinner />;
   if (error) return <div className="text-center text-red-500">{error}</div>;
   if (!business || !benefit) return null;
 
