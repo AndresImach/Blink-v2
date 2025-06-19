@@ -1,7 +1,7 @@
 import { mockBusinesses } from "../data/mockData";
 import { Business } from "../types";
 
-const API_BASE_URL = "http://localhost:3000";
+const API_BASE_URL = "https://benefits-fetcher-5na20bs0n-andresimachs-projects.vercel.app";
 
 interface BenefitResponse {
   _id: { $oid: string };
