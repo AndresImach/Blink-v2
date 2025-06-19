@@ -7,11 +7,13 @@ import { useBusinessFilter } from "../hooks/useBusinessFilter";
 import { categories as rawCategories } from "../data/mockData";
 import { Business, Category } from "../types";
 import { fetchBusinesses } from "../services/api";
+import { useNavigate } from "react-router-dom";
 
 function Home() {
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const loadBusinesses = async () => {
@@ -67,7 +69,13 @@ function Home() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {filteredBusinesses.map((business) => (
-              <BusinessCard key={business.id} business={business} />
+              <BusinessCard
+                key={business.id}
+                business={business}
+                onBenefitClick={(benefitIndex) =>
+                  navigate(`/benefit/${business.id}/${benefitIndex}`)
+                }
+              />
             ))}
           </div>
         )}
