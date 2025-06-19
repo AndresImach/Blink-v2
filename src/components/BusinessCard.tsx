@@ -4,9 +4,10 @@ import { Business } from "../types";
 
 interface BusinessCardProps {
   business: Business;
+  onBenefitClick?: (benefitIndex: number) => void;
 }
 
-export const BusinessCard: React.FC<BusinessCardProps> = ({ business }) => {
+export const BusinessCard: React.FC<BusinessCardProps> = ({ business, onBenefitClick }) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
   return (
@@ -38,6 +39,7 @@ export const BusinessCard: React.FC<BusinessCardProps> = ({ business }) => {
         {/* <p className="text-gray-600 mb-4 leading-relaxed">{business.description}</p> */}
 
         <button
+          type="button"
           onClick={() => setIsExpanded(!isExpanded)}
           className="w-full flex items-center justify-between px-4 py-3 bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 rounded-xl transition-all duration-200 border border-blue-100"
         >
@@ -58,12 +60,14 @@ export const BusinessCard: React.FC<BusinessCardProps> = ({ business }) => {
         >
           <div className="space-y-3">
             {business.benefits.map((benefit, index) => (
-              <div
+              <button
                 key={index}
-                className="flex items-start gap-4 p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors duration-200"
+                type="button"
+                className="flex items-start gap-4 p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors duration-200 w-full text-left"
                 style={{
                   animationDelay: isExpanded ? `${index * 100}ms` : "0ms",
                 }}
+                onClick={() => onBenefitClick && onBenefitClick(index)}
               >
                 <div
                   className={`${benefit.color} p-2 rounded-lg flex-shrink-0`}
@@ -87,7 +91,7 @@ export const BusinessCard: React.FC<BusinessCardProps> = ({ business }) => {
                     {benefit.rewardRate}
                   </div>
                 </div>
-              </div>
+              </button>
             ))}
           </div>
         </div>
