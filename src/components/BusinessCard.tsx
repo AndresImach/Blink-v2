@@ -53,7 +53,7 @@ export const BusinessCard: React.FC<BusinessCardProps> = ({ business }) => {
 
         <div
           className={`transition-all duration-300 ease-in-out ${
-            isExpanded ? "max-h-96 opacity-100 mt-4" : "max-h-0 opacity-0"
+            isExpanded ? "max-h-[1000px] opacity-100 mt-4" : "max-h-0 opacity-0"
           } overflow-hidden`}
         >
           <div className="space-y-3">
