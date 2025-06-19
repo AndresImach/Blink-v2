@@ -182,11 +182,18 @@ export const mockBusinesses: Business[] = [
 ];
 
 export const categories = [
-  { value: 'all', label: 'All Categories' },
-  { value: 'restaurants', label: 'Restaurants' },
-  { value: 'retail', label: 'Retail' },
-  { value: 'gas', label: 'Gas Stations' },
-  { value: 'grocery', label: 'Grocery' },
-  { value: 'travel', label: 'Travel' },
-  { value: 'entertainment', label: 'Entertainment' }
+  { value: 'all', label: 'Todos' },
+  { value: 'gastronomia', label: 'Gastronomía' },
+  { value: 'moda', label: 'Moda' },
+  { value: 'entretenimiento', label: 'Entretenimiento' },
+  { value: 'otros', label: 'Otros comercios y servicios' },
+  { value: 'deportes', label: 'Deportes' },
+  { value: 'regalos', label: 'Regalos' },
+  { value: 'viajes', label: 'Viajes' },
+  { value: 'automotores', label: 'Automotores' },
+  { value: 'belleza', label: 'Belleza' },
+  { value: 'jugueterias', label: 'Jugueterías' },
+  { value: 'hogar', label: 'Hogar y Deco' },
+  { value: 'electro', label: 'Electro y Tecnología' },
+  { value: 'shopping', label: 'Shopping' },
 ];

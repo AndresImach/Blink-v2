@@ -1,6 +1,11 @@
 import { mockBusinesses } from "../data/mockData";
 import { Business } from "../types";
 
+declare global {
+  // Extend the globalThis type to include allCategories
+  var allCategories: Set<string> | undefined;
+}
+
 const API_BASE_URL = "https://benefits-fetcher-5na20bs0n-andresimachs-projects.vercel.app";
 
 interface BenefitResponse {
@@ -79,11 +84,12 @@ export async function fetchBusinesses(): Promise<Business[]> {
         // Add this bank's benefit to the business
         const business = businessMap.get(titulo)!;
         const rewardRate = benefit.beneficios[0]?.valor || "N/A";
+        const benefitDescription = benefit.beneficios[0]?.casuistica?.descripcion || benefit.details.beneficio.subtitulo || "";
 
         business.benefits.push({
           bankName: bankName,
           cardName: "Credit Card",
-          benefit: benefit.details.beneficio.subtitulo,
+          benefit: benefitDescription,
           rewardRate: rewardRate,
           color: "bg-blue-500",
           icon: "CreditCard",

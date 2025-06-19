@@ -1,6 +1,6 @@
 {
-  "name": "Bank Benefits Finder",
-  "short_name": "BankBenefits",
+  "name": "Blink",
+  "short_name": "Blink",
   "description": "Find the best bank card benefits for your favorite businesses",
   "start_url": "/",
   "display": "standalone",
