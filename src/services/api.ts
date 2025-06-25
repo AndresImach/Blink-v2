@@ -6,7 +6,8 @@ declare global {
   var allCategories: Set<string> | undefined;
 }
 
-const API_BASE_URL = "https://benefits-fetcher-5na20bs0n-andresimachs-projects.vercel.app";
+const API_BASE_URL =
+  "https://benefits-fetcher-5na20bs0n-andresimachs-projects.vercel.app";
 
 interface BenefitResponse {
   _id: { $oid: string };
@@ -27,7 +28,7 @@ interface BenefitResponse {
   details: {
     beneficio: {
       titulo: string;
-      rubros: string | null; // Can be null if not specified
+      rubros: { id: number; nombre: string }[];
       subtitulo: string;
       imagen: string;
       vigencia: string;
@@ -61,16 +62,15 @@ export async function fetchBusinesses(): Promise<Business[]> {
     Object.entries(data).forEach(([bankKey, benefits]) => {
       benefits.forEach((benefit) => {
         const titulo = benefit.details.beneficio.titulo;
-        const category = benefit.details.beneficio.rubros || "retail";
+        const category = benefit.details.beneficio.rubros;
         const description = benefit.cabecera || "No description available";
         const bankName = bankKey.replace(/_GO$/, "").replace(/_/g, " ");
 
         if (!businessMap.has(titulo)) {
-          // Create new business entry for this titulo
           businessMap.set(titulo, {
             id: titulo,
             name: titulo,
-            category: category,
+            category: category[0]?.nombre || "otros",
             description: description,
             rating: 5,
             location: "Multiple locations",
@@ -84,7 +84,10 @@ export async function fetchBusinesses(): Promise<Business[]> {
         // Add this bank's benefit to the business
         const business = businessMap.get(titulo)!;
         const rewardRate = benefit.beneficios[0]?.valor || "N/A";
-        const benefitDescription = benefit.beneficios[0]?.casuistica?.descripcion || benefit.details.beneficio.subtitulo || "";
+        const benefitDescription =
+          benefit.beneficios[0]?.casuistica?.descripcion ||
+          benefit.details.beneficio.subtitulo ||
+          "";
 
         business.benefits.push({
           bankName: bankName,

@@ -41,37 +41,93 @@ function Home() {
     setSearchTerm,
     selectedCategory,
     setSelectedCategory,
-    filteredBusinesses: filteredByCategory
+    filteredBusinesses: filteredByCategory,
   } = useBusinessFilter(businesses);
 
   // Custom filter for each special category
   let finalBusinesses = filteredByCategory;
-  if (selectedCategory === 'gastronomia') {
-    finalBusinesses = businesses.filter(b => b.category && b.category.toLowerCase().includes('gastronom'));
-  } else if (selectedCategory === 'moda') {
-    finalBusinesses = businesses.filter(b => b.category && b.category.toLowerCase().includes('moda'));
-  } else if (selectedCategory === 'entretenimiento') {
-    finalBusinesses = businesses.filter(b => b.category && b.category.toLowerCase().includes('entretenimiento'));
-  } else if (selectedCategory === 'otros') {
-    finalBusinesses = businesses.filter(b => b.category && b.category.toLowerCase().includes('otros'));
-  } else if (selectedCategory === 'deportes') {
-    finalBusinesses = businesses.filter(b => b.category && b.category.toLowerCase().includes('deporte'));
-  } else if (selectedCategory === 'regalos') {
-    finalBusinesses = businesses.filter(b => b.category && b.category.toLowerCase().includes('regalo'));
-  } else if (selectedCategory === 'viajes') {
-    finalBusinesses = businesses.filter(b => b.category && b.category.toLowerCase().includes('viaje'));
-  } else if (selectedCategory === 'automotores') {
-    finalBusinesses = businesses.filter(b => b.category && b.category.toLowerCase().includes('automotor'));
-  } else if (selectedCategory === 'belleza') {
-    finalBusinesses = businesses.filter(b => b.category && b.category.toLowerCase().includes('belleza'));
-  } else if (selectedCategory === 'jugueterias') {
-    finalBusinesses = businesses.filter(b => b.category && b.category.toLowerCase().includes('jugueter'));
-  } else if (selectedCategory === 'hogar') {
-    finalBusinesses = businesses.filter(b => b.category && b.category.toLowerCase().includes('hogar') || b.category.toLowerCase().includes('deco'));
-  } else if (selectedCategory === 'electro') {
-    finalBusinesses = businesses.filter(b => b.category && b.category.toLowerCase().includes('electro') || b.category.toLowerCase().includes('tecnolog'));
-  } else if (selectedCategory === 'shopping') {
-    finalBusinesses = businesses.filter(b => b.category && b.category.toLowerCase().includes('shopping'));
+  if (selectedCategory === "gastronomia") {
+    finalBusinesses = businesses.filter(
+      (b) =>
+        typeof b.category === "string" &&
+        b.category.toLowerCase().includes("gastronom")
+    );
+  } else if (selectedCategory === "moda") {
+    finalBusinesses = businesses.filter(
+      (b) =>
+        typeof b.category === "string" &&
+        b.category.toLowerCase().includes("moda")
+    );
+  } else if (selectedCategory === "entretenimiento") {
+    finalBusinesses = businesses.filter(
+      (b) =>
+        typeof b.category === "string" &&
+        b.category.toLowerCase().includes("entretenimiento")
+    );
+  } else if (selectedCategory === "otros") {
+    finalBusinesses = businesses.filter(
+      (b) =>
+        typeof b.category === "string" &&
+        b.category.toLowerCase().includes("otros")
+    );
+  } else if (selectedCategory === "deportes") {
+    finalBusinesses = businesses.filter(
+      (b) =>
+        typeof b.category === "string" &&
+        b.category.toLowerCase().includes("deporte")
+    );
+  } else if (selectedCategory === "regalos") {
+    finalBusinesses = businesses.filter(
+      (b) =>
+        typeof b.category === "string" &&
+        b.category.toLowerCase().includes("regalo")
+    );
+  } else if (selectedCategory === "viajes") {
+    finalBusinesses = businesses.filter(
+      (b) =>
+        typeof b.category === "string" &&
+        b.category.toLowerCase().includes("viaje")
+    );
+  } else if (selectedCategory === "automotores") {
+    finalBusinesses = businesses.filter(
+      (b) =>
+        typeof b.category === "string" &&
+        b.category.toLowerCase().includes("automotor")
+    );
+  } else if (selectedCategory === "belleza") {
+    finalBusinesses = businesses.filter(
+      (b) =>
+        typeof b.category === "string" &&
+        b.category.toLowerCase().includes("belleza")
+    );
+  } else if (selectedCategory === "jugueterias") {
+    finalBusinesses = businesses.filter(
+      (b) =>
+        typeof b.category === "string" &&
+        b.category.toLowerCase().includes("jugueter")
+    );
+  } else if (selectedCategory === "hogar") {
+    finalBusinesses = businesses.filter(
+      (b) =>
+        (typeof b.category === "string" &&
+          b.category.toLowerCase().includes("hogar")) ||
+        (typeof b.category === "string" &&
+          b.category.toLowerCase().includes("deco"))
+    );
+  } else if (selectedCategory === "electro") {
+    finalBusinesses = businesses.filter(
+      (b) =>
+        (typeof b.category === "string" &&
+          b.category.toLowerCase().includes("electro")) ||
+        (typeof b.category === "string" &&
+          b.category.toLowerCase().includes("tecnolog"))
+    );
+  } else if (selectedCategory === "shopping") {
+    finalBusinesses = businesses.filter(
+      (b) =>
+        typeof b.category === "string" &&
+        b.category.toLowerCase().includes("shopping")
+    );
   }
 
   return (
@@ -84,7 +140,7 @@ function Home() {
             <CategoryDropdown
               value={selectedCategory}
               onChange={setSelectedCategory}
-              options={rawCategories.map((cat: any) => ({ value: cat.value, label: cat.label }))}
+              options={rawCategories as { value: Category; label: string }[]}
             />
           </div>
         </div>
@@ -97,10 +153,12 @@ function Home() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {finalBusinesses.map((business) => (
-              <BusinessCard 
+              <BusinessCard
                 key={business.id}
                 business={business}
-                onBenefitClick={(benefitIndex) => navigate(`/benefit/${business.id}/${benefitIndex}`)}
+                onBenefitClick={(benefitIndex) =>
+                  navigate(`/benefit/${business.id}/${benefitIndex}`)
+                }
               />
             ))}
           </div>
