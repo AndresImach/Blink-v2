@@ -657,6 +657,21 @@ function SearchPage() {
     return () => observer.disconnect();
   }, []);
 
+  // IntersectionObserver only fires on visibility *transitions*. When a page
+  // comes back short (the API drops merchants without matching benefits, and
+  // client-side filters can shrink it further), the sentinel never leaves the
+  // viewport, so the observer alone would never request the next page and the
+  // list would get stuck (e.g. 5 results with hasMore=true). Backfill
+  // explicitly after each page settles until the viewport is filled.
+  useEffect(() => {
+    if (isPrimarySearchLoading || isLoadingMore || !hasMore) return;
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+    if (sentinel.getBoundingClientRect().top <= window.innerHeight + 300) {
+      infiniteScrollStateRef.current.loadMore();
+    }
+  }, [isPrimarySearchLoading, isLoadingMore, hasMore]);
+
   // ── Related by category (infinite scroll tail) ──────────────────────────────
   // Derives the category from the first search result and fetches more businesses
   // from that category so the list never feels empty.
@@ -739,6 +754,17 @@ function SearchPage() {
     observer.observe(sentinel);
     return () => observer.disconnect();
   }, []);
+
+  // Same short-page backfill as the primary list (see comment above): keep
+  // fetching related pages while the sentinel remains within the viewport.
+  useEffect(() => {
+    if (isRelatedLoading || isRelatedFetchingMore || !relatedHasMore) return;
+    const sentinel = relatedSentinelRef.current;
+    if (!sentinel) return;
+    if (sentinel.getBoundingClientRect().top <= window.innerHeight + 300) {
+      relatedScrollStateRef.current.fetchRelatedNext();
+    }
+  }, [isRelatedLoading, isRelatedFetchingMore, relatedHasMore]);
 
   // Category label for the related section
   const relatedCategoryLabel = useMemo(() => {

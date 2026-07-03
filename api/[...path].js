@@ -2990,7 +2990,12 @@ async function handleGetBusinesses(req, res, url, db) {
       total,
       limit: limitNum,
       offset: offsetNum,
-      hasMore: offsetNum + businesses.length < total
+      // Pagination advances over merchants (clients request offset + limit
+      // next), while `businesses` can come back shorter than `limit` because
+      // merchants without matching benefits are dropped after paging. Base
+      // hasMore on merchants consumed, not businesses returned, so a short
+      // page doesn't mislead clients about remaining pages.
+      hasMore: offsetNum + limitNum < total
     },
     filters: {
       ...(merchantId && { merchantId }),
