@@ -675,7 +675,12 @@ function SearchPage() {
   // change of search/filters resets the budget. Depending on `strictMatches`
   // also re-runs the check when switching to an already-cached short result
   // set, where none of the loading flags transition.
-  const backfillSignature = `${searchIntentSignature}|${sortByDistance}|${JSON.stringify(currentFilterState)}`;
+  const backfillSignature = [
+    searchIntentSignature,
+    sortByDistance,
+    position ? `${position.latitude},${position.longitude}` : '',
+    JSON.stringify(currentFilterState),
+  ].join('|');
   const backfillBudgetRef = useRef({ signature: '', renderedCount: -1, fruitless: 0 });
   useEffect(() => {
     if (isPrimarySearchLoading || isLoadingMore || !hasMore) return;
@@ -784,7 +789,17 @@ function SearchPage() {
   // merchant was already shown in the primary results, so also keep paging
   // while the deduped list is empty: a later page may hold unseen merchants.
   // The fruitless-fetch budget bounds both paths.
-  const relatedBackfillBudgetRef = useRef({ category: '', renderedCount: -1, fruitless: 0 });
+  // Budget signature mirrors the related query key (category, banks, sort,
+  // location): any input that starts a new related query must also reset the
+  // fruitless budget, or a budget spent on the previous filter set would
+  // block backfilling the new one.
+  const relatedBackfillSignature = [
+    matchedCategory ?? '',
+    selectedBanks.join(','),
+    sortByDistance,
+    position ? `${position.latitude},${position.longitude}` : '',
+  ].join('|');
+  const relatedBackfillBudgetRef = useRef({ signature: '', renderedCount: -1, fruitless: 0 });
   useEffect(() => {
     if (isRelatedLoading || isRelatedFetchingMore || !relatedHasMore) return;
 
@@ -795,8 +810,8 @@ function SearchPage() {
     if (!shouldBackfill) return;
 
     const budget = relatedBackfillBudgetRef.current;
-    if (budget.category !== (matchedCategory ?? '') || budget.renderedCount !== relatedBusinesses.length) {
-      budget.category = matchedCategory ?? '';
+    if (budget.signature !== relatedBackfillSignature || budget.renderedCount !== relatedBusinesses.length) {
+      budget.signature = relatedBackfillSignature;
       budget.renderedCount = relatedBusinesses.length;
       budget.fruitless = 0;
     } else if (budget.fruitless >= MAX_FRUITLESS_BACKFILLS) {
@@ -805,7 +820,7 @@ function SearchPage() {
       budget.fruitless += 1;
     }
     relatedScrollStateRef.current.fetchRelatedNext();
-  }, [isRelatedLoading, isRelatedFetchingMore, relatedHasMore, relatedBusinesses, matchedCategory]);
+  }, [isRelatedLoading, isRelatedFetchingMore, relatedHasMore, relatedBusinesses, relatedBackfillSignature]);
 
   // Category label for the related section
   const relatedCategoryLabel = useMemo(() => {
