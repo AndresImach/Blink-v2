@@ -323,6 +323,45 @@ describe('SearchPage loading states', () => {
     });
   });
 
+  it('backfills the next page when a short page leaves the sentinel visible', async () => {
+    const loadMore = vi.fn();
+    vi.mocked(useBenefitsData).mockReturnValue({
+      businesses: [mockBusiness],
+      featuredBenefits: [],
+      isLoading: false,
+      isPrimarySearchLoading: false,
+      isLoadingMore: false,
+      error: null,
+      primarySearchError: null,
+      hasMore: true,
+      loadMore,
+      refreshData: vi.fn(),
+      totalBusinesses: 40,
+      proximityUnavailable: false,
+    });
+    vi.mocked(useEnrichedBusinesses).mockReturnValue([mockBusiness]);
+    vi.mocked(useFallbackSearch).mockReturnValue({
+      otherBanksBusinesses: [],
+      resolvedTotalOtherBanks: 0,
+      isOtherBanksLoading: false,
+      isOtherBanksSearchLoading: false,
+      relativeBusinesses: [],
+      isRelativeLoading: false,
+      isRelativeSearchLoading: false,
+      isFallbackSearchLoading: false,
+    });
+
+    // No search term: plain bank-filtered listing (the reported scenario)
+    renderSearchPage('/buscar?bank=lagaceta');
+
+    // The sentinel never leaves the viewport (page too short to scroll), so the
+    // IntersectionObserver alone would never fire again; the backfill effect
+    // must request the next page.
+    await waitFor(() => {
+      expect(loadMore).toHaveBeenCalled();
+    });
+  });
+
   it('shows other-bank results without waiting for popular fallback suggestions', () => {
     vi.mocked(useFallbackSearch).mockReturnValue({
       otherBanksBusinesses: [mockBusiness],

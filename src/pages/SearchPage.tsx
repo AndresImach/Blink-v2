@@ -56,6 +56,10 @@ interface QuickFilterPill {
 }
 
 const BANK_STORAGE_KEY = 'blink.search.selectedBanks';
+// Max consecutive automatic infinite-scroll backfills that add nothing to the
+// rendered list before pausing (prevents client-side filters that match
+// nothing from paging through the entire catalog in the background).
+const MAX_FRUITLESS_BACKFILLS = 5;
 const BLINK_ENTITY_DESCRIPTION =
   'Blink es un buscador argentino para encontrar y comparar promociones, descuentos, cuotas, topes y beneficios de bancos, billeteras y comercios antes de pagar.';
 const BLINK_ENTITY_CANONICAL_IDENTITY =
@@ -657,6 +661,46 @@ function SearchPage() {
     return () => observer.disconnect();
   }, []);
 
+  // IntersectionObserver only fires on visibility *transitions*. When a page
+  // comes back short (the API drops merchants without matching benefits, and
+  // client-side filters can shrink it further), the sentinel never leaves the
+  // viewport, so the observer alone would never request the next page and the
+  // list would get stuck (e.g. 5 results with hasMore=true). Backfill
+  // explicitly after each page settles until the viewport is filled.
+  //
+  // Bounded: client-only filters (minDiscount, availableDay, …) are applied
+  // after fetching, so a filter matching nothing would otherwise keep
+  // hasMore=true and walk the entire catalog. Allow only a few consecutive
+  // backfills that add nothing to the rendered list; rendered progress or a
+  // change of search/filters resets the budget. Depending on `strictMatches`
+  // also re-runs the check when switching to an already-cached short result
+  // set, where none of the loading flags transition.
+  const backfillSignature = [
+    searchIntentSignature,
+    sortByDistance,
+    position ? `${position.latitude},${position.longitude}` : '',
+    JSON.stringify(currentFilterState),
+  ].join('|');
+  const backfillBudgetRef = useRef({ signature: '', renderedCount: -1, fruitless: 0 });
+  useEffect(() => {
+    if (isPrimarySearchLoading || isLoadingMore || !hasMore) return;
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+    if (sentinel.getBoundingClientRect().top > window.innerHeight + 300) return;
+
+    const budget = backfillBudgetRef.current;
+    if (budget.signature !== backfillSignature || budget.renderedCount !== strictMatches.length) {
+      budget.signature = backfillSignature;
+      budget.renderedCount = strictMatches.length;
+      budget.fruitless = 0;
+    } else if (budget.fruitless >= MAX_FRUITLESS_BACKFILLS) {
+      return;
+    } else {
+      budget.fruitless += 1;
+    }
+    infiniteScrollStateRef.current.loadMore();
+  }, [isPrimarySearchLoading, isLoadingMore, hasMore, strictMatches, backfillSignature]);
+
   // ── Related by category (infinite scroll tail) ──────────────────────────────
   // Derives the category from the first search result and fetches more businesses
   // from that category so the list never feels empty.
@@ -739,6 +783,44 @@ function SearchPage() {
     observer.observe(sentinel);
     return () => observer.disconnect();
   }, []);
+
+  // Same short-page backfill as the primary list (see comment above). The
+  // related section — and its sentinel — unmounts when every fetched related
+  // merchant was already shown in the primary results, so also keep paging
+  // while the deduped list is empty: a later page may hold unseen merchants.
+  // The fruitless-fetch budget bounds both paths.
+  // Budget signature mirrors the related query key (category, banks, sort,
+  // location): any input that starts a new related query must also reset the
+  // fruitless budget, or a budget spent on the previous filter set would
+  // block backfilling the new one.
+  const relatedBackfillSignature = [
+    matchedCategory ?? '',
+    selectedBanks.join(','),
+    sortByDistance,
+    position ? `${position.latitude},${position.longitude}` : '',
+  ].join('|');
+  const relatedBackfillBudgetRef = useRef({ signature: '', renderedCount: -1, fruitless: 0 });
+  useEffect(() => {
+    if (isRelatedLoading || isRelatedFetchingMore || !relatedHasMore) return;
+
+    const sentinel = relatedSentinelRef.current;
+    const shouldBackfill = sentinel
+      ? sentinel.getBoundingClientRect().top <= window.innerHeight + 300
+      : relatedBusinesses.length === 0;
+    if (!shouldBackfill) return;
+
+    const budget = relatedBackfillBudgetRef.current;
+    if (budget.signature !== relatedBackfillSignature || budget.renderedCount !== relatedBusinesses.length) {
+      budget.signature = relatedBackfillSignature;
+      budget.renderedCount = relatedBusinesses.length;
+      budget.fruitless = 0;
+    } else if (budget.fruitless >= MAX_FRUITLESS_BACKFILLS) {
+      return;
+    } else {
+      budget.fruitless += 1;
+    }
+    relatedScrollStateRef.current.fetchRelatedNext();
+  }, [isRelatedLoading, isRelatedFetchingMore, relatedHasMore, relatedBusinesses, relatedBackfillSignature]);
 
   // Category label for the related section
   const relatedCategoryLabel = useMemo(() => {
