@@ -21,6 +21,30 @@ const COLLECTION = process.env.SEARCH_SOURCE_COLLECTION || 'merchant_assets';
 const DATABASE_NAME = process.env.DATABASE_NAME || 'benefitsV3';
 const BATCH_SIZE = Number.parseInt(process.env.SEARCH_INDEX_BATCH_SIZE || '500', 10);
 
+export const SEARCH_MERCHANT_PROJECTION = Object.freeze({
+  _id: 0,
+  merchantId: 1,
+  merchantKey: 1,
+  merchantName: 1,
+  categories: 1,
+  banks: 1,
+  locations: { $slice: 15 },
+  coverUrl: 1,
+  imageUrl: 1,
+  logoUrl: 1,
+  maxDiscountPercentage: 1,
+  hasOnlineBenefits: 1,
+  activeBenefitCount: 1,
+  benefitCount: 1,
+  'searchProfile.aliases': 1,
+  'searchProfile.productTags': 1,
+  'searchProfile.intentTags': 1,
+  'searchProfile.description': 1,
+  'searchProfile.maxDiscount': 1,
+  'searchProfile.popularity': 1,
+  'searchProfile.searchText': 1
+});
+
 const MEILI_SETTINGS = {
   searchableAttributes: [
     'merchantName',
@@ -84,8 +108,10 @@ function getActiveMerchantMatch() {
   };
 }
 
-async function loadMerchants(db) {
-  return db.collection(COLLECTION).find(getActiveMerchantMatch()).toArray();
+export async function loadMerchants(db) {
+  return db.collection(COLLECTION)
+    .find(getActiveMerchantMatch(), { projection: SEARCH_MERCHANT_PROJECTION })
+    .toArray();
 }
 
 async function applyMeiliIndexSettings() {
