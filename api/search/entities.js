@@ -316,7 +316,10 @@ function buildMerchantDocumentFromStoredMerchant(merchant, options = {}) {
     rating: 5,
     location: locations,
     image: pickMerchantImage(merchant),
-    benefits: Array.isArray(searchProfile.benefits) ? searchProfile.benefits : []
+    // Benefits are hydrated from confirmed_benefits after search ranking. Keeping
+    // previews in the search document duplicates the canonical data and bloats
+    // both MongoDB and Meilisearch.
+    benefits: []
   };
 
   return {

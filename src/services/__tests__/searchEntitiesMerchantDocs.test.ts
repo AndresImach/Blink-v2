@@ -55,7 +55,7 @@ describe('buildSearchDatasetFromMerchantDocs', () => {
     expect(dataset.merchantDocuments).toHaveLength(1);
     expect(dataset.merchantDocuments[0].merchantId).toBe('merchant_1');
     expect(dataset.merchantDocuments[0].business.image).toBe('https://cdn.example.com/freddo.jpg');
-    expect(dataset.merchantDocuments[0].business.benefits).toHaveLength(1);
+    expect(dataset.merchantDocuments[0].business.benefits).toEqual([]);
     expect(dataset.productDocuments.some((doc) => doc.productTerm === 'helado')).toBe(true);
     expect(dataset.intentDocuments.some((doc) => doc.intentKey === 'dessert_icecream')).toBe(true);
   });

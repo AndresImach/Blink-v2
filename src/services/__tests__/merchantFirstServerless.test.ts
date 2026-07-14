@@ -1911,7 +1911,7 @@ describe('merchant-first serverless helpers', () => {
       merchantId: { $exists: true, $type: 'string' },
       activeBenefitCount: { $gt: 0 },
       categories: { $in: ['shopping'] },
-      'searchProfile.benefits.bankName': { $in: expect.arrayContaining([expect.any(RegExp)]) }
+      banks: { $in: expect.arrayContaining([expect.any(RegExp)]) }
     });
   });
 
@@ -2009,8 +2009,8 @@ describe('merchant-first serverless helpers', () => {
       siteUrl: 'https://www.blinkapp.com.ar'
     });
 
-    const bankPatterns = (merchantQueries[0] as Record<string, { $in: RegExp[] }>)['searchProfile.benefits.bankName'].$in;
-    expect(bankPatterns.some((pattern) => pattern.test('Banco Nación'))).toBe(true);
+    const bankPatterns = (merchantQueries[0] as Record<string, { $in: RegExp[] }>).banks.$in;
+    expect(bankPatterns.some((pattern) => pattern.test('nacion'))).toBe(true);
     expect(res.statusCode).toBe(200);
     expect(res.body).toContain('<title>Descuentos Banco Nación en Supermercado y shopping | Blink</title>');
   });
@@ -2103,8 +2103,8 @@ describe('merchant-first serverless helpers', () => {
       siteUrl: 'https://www.blinkapp.com.ar'
     });
 
-    const bankPatterns = (merchantQueries[0] as Record<string, { $in: RegExp[] }>)['searchProfile.benefits.bankName'].$in;
-    expect(bankPatterns.some((pattern) => pattern.test('Banco Francés'))).toBe(true);
+    const bankPatterns = (merchantQueries[0] as Record<string, { $in: RegExp[] }>).banks.$in;
+    expect(bankPatterns.some((pattern) => pattern.test('bbva'))).toBe(true);
     expect(res.statusCode).toBe(200);
     expect(res.body).toContain('<title>Descuentos BBVA en Supermercado y shopping | Blink</title>');
   });

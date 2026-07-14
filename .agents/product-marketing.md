@@ -1,6 +1,6 @@
 # Product Marketing Context
 
-*Last updated: 2026-06-26*
+*Last updated: 2026-07-03*
 
 ## Product Overview
 **One-liner:** Blink es un buscador argentino para encontrar y comparar promociones, descuentos, cuotas y beneficios antes de pagar.
@@ -139,6 +139,15 @@
 
 **Personality:** Práctico, confiable, cercano, rápido, transparente.
 
+## Brand Symbol
+**Primary symbol:** `🄱` (Unicode U+1F131, SQUARED LATIN CAPITAL LETTER B).
+
+**Use:** Usar `🄱` como símbolo compacto de Blink en piezas promocionales, avatares, placeholders, firmas, stickers, headers muy reducidos o assets donde el nombre completo "Blink" ya esté cerca o sea evidente por contexto.
+
+**Guidance:** En primera mención, acompañar el símbolo con el nombre `Blink` para fijar asociación. No usarlo como reemplazo único del nombre en textos SEO, metadata, documentos legales, CTAs principales o piezas donde pueda no renderizar correctamente. En UI o assets digitales, validar contraste, tamaño y soporte tipográfico antes de publicarlo.
+
+**Accessibility:** Cuando el símbolo aparezca solo en un asset digital, usar texto alternativo o etiqueta accesible `Blink`. No depender de `🄱` como único significado para lectores de pantalla o entornos que no soporten el glifo.
+
 ## Visual Identity & Brand Palette
 **Source:** `/Users/tomas/Downloads/blink-paleta-marca.pdf`, paleta final de marca al 2026-06-26.
 
@@ -173,6 +182,24 @@
 - No usar `#F1F3FE` ni `#E9EDFB` como fondos de marca porque son redundantes frente a `#EEF2FF`.
 
 **Image generation guidance:** Al pedir imágenes promocionales, especificar "Blink brand palette: primary violet `#4338CA`, savings green `#059669`, dark text `#1C1C1E`, soft lavender `#EEF2FF`, white `#FFFFFF`". Priorizar composiciones limpias, mucho aire, texto legible, números de ahorro en verde, CTAs en violeta y no más de dos colores fuertes.
+
+## Instagram Story Prompt Defaults
+**Use case:** Usar esta sección cuando el usuario pida prompts para historias de Instagram, historias destacadas, placas verticales, covers o secuencias educativas de Blink.
+
+**Output style:** Entregar prompts en español, listos para copiar en un generador de imágenes. Incluir composición detallada por historia: texto exacto, ubicación aproximada, tamaño de fuente, peso, color, fondo, relación de aspecto, jerarquía visual, componentes UI y restricciones. Si el usuario pide "solo texto" o "solo prompt", no generar imagen ni agregar explicación extra.
+
+**Format:** Usar formato vertical `9:16`, `1080 x 1920 px`. Mantener todo el texto dentro de zona segura: margen lateral mínimo `88 px`, margen superior aproximado `150-180 px`, margen inferior `220-240 px`. Usar tipografía `Space Grotesk` o sans geométrica similar. Texto principal en `#1C1C1E`, acciones y marca en `#4338CA`, ahorro/descuentos en `#059669`, fondos en `#FFFFFF` o `#EEF2FF`.
+
+**Visual style:** Placas limpias, mobile-first, con mucho aire y apariencia de producto real. Priorizar mockups de interfaz de Blink, cards de beneficios, chips de filtros, barras de búsqueda, contadores, tope, cuotas, vigencia, días de aplicación y nombres de emisores. Evitar fotos de stock, fondos cargados, ornamentos innecesarios, degradados fuertes y más de dos colores protagonistas por placa.
+
+**Compliance and brand safety:** No prometer "descuento garantizado", "beneficio asegurado" ni aceptación final del comercio/banco. Si se usan marcas reales como ejemplo visual, tratarlas como referencia editorial de composición y evitar reproducir logos oficiales exactos salvo que el usuario lo pida explícitamente y tenga derecho de uso; preferir íconos abstractos o placeholders.
+
+**Default highlight sequence - "Cómo funciona":**
+- Historia 1: "Buscás". Mensaje central: "Escribí el comercio, rubro o banco antes de pagar." Visual recomendado: barra de búsqueda o pantalla inicial con chips como "Supermercado", "Farmacia", "Online".
+- Historia 2: "Ves beneficios de TUS tarjetas". Mensaje central: "Entrás a un comercio y Blink te muestra qué banco o billetera te conviene usar." Visual recomendado: mockup de pantalla de comercio con beneficios activos, inspirado en la app real.
+- Historia 3: "Pagás con la que más ahorra". Mensaje central: "Compará descuento, tope y cuotas antes de llegar a la caja." Visual recomendado: tarjeta o medio de pago seleccionado con resumen de ahorro estimado, CTA violeta y números de ahorro en verde.
+
+**Story 2 reference composition:** Para la segunda historia, usar como referencia una pantalla de detalle de comercio similar a la app: header con comercio ejemplo `McDonald's`, categoría `Gastronomía`, estado `6 beneficios activos`, corazón de favorito, filtros en pills `Hoy`, `Por beneficio`, `Sucursal`, y una lista scrolleable de cards por emisor. La lista puede mostrar emisores ejemplo `MERCADO PAGO`, `NARANJA X` y `GALICIA`, con beneficios como `30% de reintegro`, `30% off` y `25% en McDonald's`, datos de `481 sucursales`, medio de pago, días de aplicación y tope. Usar el panel como mockup de producto dentro de la historia, sin marco pesado de celular, con cards blancas, headers suaves por emisor, radio alto y sombra sutil. Mantener la historia con título superior "Ves beneficios de TUS tarjetas" y el mockup ocupando la zona inferior.
 
 ## Proof Points
 **Metrics:**
