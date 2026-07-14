@@ -10,23 +10,17 @@ import {
 } from '../../../api/landing-seo-data.js';
 
 describe('landing SEO data helpers', () => {
-  it('uses canonical search profile bank names instead of tokenized bank fields', () => {
+  it('uses canonical merchant bank facets without embedded benefit previews', () => {
     const merchant = {
-      banks: ['provincia', 'buenos', 'aires'],
-      searchProfile: {
-        benefits: [{ bankName: 'Banco Provincia' }]
-      }
+      banks: ['provincia'],
     };
 
-    expect(getLandingBankValuesFromMerchant(merchant)).toEqual(['Banco Provincia']);
+    expect(getLandingBankValuesFromMerchant(merchant)).toEqual(['provincia']);
   });
 
-  it('does not resolve arbitrary bank tokens from merchant bank search fields', () => {
+  it('does not resolve arbitrary values outside canonical merchant bank facets', () => {
     const merchant = {
-      banks: ['a', 'provincia'],
-      searchProfile: {
-        benefits: [{ bankName: 'Banco Galicia' }]
-      }
+      banks: ['galicia'],
     };
 
     expect(resolveLandingBankFromMerchants('galicia', [merchant])?.slug).toBe('galicia');
@@ -35,9 +29,7 @@ describe('landing SEO data helpers', () => {
 
   it('can seed client aliases when validating bank names from merchant data', () => {
     const merchant = {
-      searchProfile: {
-        benefits: [{ bankName: 'Banco Santander Río' }]
-      }
+      banks: ['santander'],
     };
 
     expect(resolveLandingBankFromMerchants('santander', [merchant], { includeClientDefinitions: true })?.slug).toBe('santander');
@@ -68,17 +60,13 @@ describe('landing SEO data helpers', () => {
     const merchants = [
       {
         categories: ['shopping'],
+        banks: ['galicia'],
         locations: [{ addressComponents: { locality: 'CABA' } }],
-        searchProfile: {
-          benefits: [{ bankName: 'Banco Galicia' }]
-        }
       },
       {
         categories: ['combustible'],
+        banks: ['naranjax'],
         locations: [{ addressComponents: { locality: 'San Miguel de Tucuman' } }],
-        searchProfile: {
-          benefits: [{ bankName: 'NaranjaX' }]
-        }
       }
     ];
 
@@ -100,10 +88,8 @@ describe('landing SEO data helpers', () => {
     const merchants = [
       {
         categories: ['shopping'],
+        banks: ['santander'],
         locations: [{ formattedAddress: 'Ciudad Autónoma de Buenos Aires' }],
-        searchProfile: {
-          benefits: [{ bankName: 'Banco Santander Río' }]
-        }
       }
     ];
 
@@ -125,10 +111,8 @@ describe('landing SEO data helpers', () => {
     const merchants = [
       {
         categories: ['shopping'],
+        banks: ['galicia'],
         locations: [{ addressComponents: { locality: 'CABA' } }],
-        searchProfile: {
-          benefits: [{ bankName: 'Banco Galicia' }]
-        }
       }
     ];
 

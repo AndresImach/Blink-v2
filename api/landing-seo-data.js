@@ -236,14 +236,8 @@ export function resolveClientLandingCity(value) {
   return resolveExistingLandingDefinition(value, CLIENT_LANDING_CITY_DEFINITIONS);
 }
 
-function getSearchProfileBankNames(merchant) {
-  return toArray(merchant?.searchProfile?.benefits)
-    .flatMap((benefit) => String(benefit?.bankName || '').split(','))
-    .map((value) => value.trim());
-}
-
 export function getLandingBankValuesFromMerchant(merchant) {
-  return uniqueStrings(getSearchProfileBankNames(merchant));
+  return uniqueStrings(toArray(merchant?.banks));
 }
 
 export function getLandingCategoryValuesFromMerchant(merchant) {

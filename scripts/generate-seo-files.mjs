@@ -164,7 +164,6 @@ async function loadMerchantSeoDocuments() {
             locations: 1,
             benefitCount: 1,
             activeBenefitCount: 1,
-            'searchProfile.benefits.bankName': 1,
           },
         },
       )

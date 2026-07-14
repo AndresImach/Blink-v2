@@ -89,7 +89,6 @@ const MERCHANT_SEO_PROJECTION = {
   benefitCount: 1,
   activeBenefitCount: 1,
   maxDiscountPercentage: 1,
-  searchProfile: 1,
   imageUrl: 1,
   logoUrl: 1,
   coverUrl: 1,
@@ -1755,6 +1754,25 @@ async function searchFromMongoFallback(db, collectionName, query, limitNum, offs
   const expandedTokens = buildExpandedQueryTokens(query);
   const regexSource = expandedTokens.map(escapeRegex).join('|') || escapeRegex(query);
   const regex = new RegExp(regexSource, 'i');
+  const benefitQuery = {
+    $or: [
+      { benefitTitle: { $regex: regex } },
+      { description: { $regex: regex } }
+    ]
+  };
+  const bankPatterns = buildProviderFilterRegexes(providerCatalog, searchParams.get('bank'));
+  if (bankPatterns.length > 0) {
+    benefitQuery['eligibilities.bank'] = { $in: bankPatterns };
+  }
+  applyActiveBenefitsFilter(benefitQuery, searchParams);
+
+  const matchingBenefits = await db.collection(collectionName)
+    .find(benefitQuery, { projection: { merchantId: 1, merchantIds: 1 } })
+    .limit(600)
+    .toArray();
+  const benefitMerchantIds = Array.from(new Set(
+    matchingBenefits.flatMap((benefit) => getEffectiveBenefitMerchantIds(benefit))
+  ));
 
   const merchantQuery = combineQueriesWithAnd(
     buildActiveMerchantSearchQuery(filters, searchParams, providerCatalog),
@@ -1764,10 +1782,10 @@ async function searchFromMongoFallback(db, collectionName, query, limitNum, offs
         { aliases: { $regex: regex } },
         { categories: { $regex: regex } },
         { banks: { $regex: regex } },
+        ...(benefitMerchantIds.length > 0 ? [{ merchantId: { $in: benefitMerchantIds } }] : []),
+        { 'searchProfile.searchText': { $regex: regex } },
         { 'searchProfile.description': { $regex: regex } },
-        { 'searchProfile.productTags': { $regex: regex } },
-        { 'searchProfile.benefits.benefit': { $regex: regex } },
-        { 'searchProfile.benefits.description': { $regex: regex } }
+        { 'searchProfile.productTags': { $regex: regex } }
       ]
     }
   );

@@ -87,14 +87,12 @@ function injectBody(shell, bodyHtml) {
 }
 
 function getMerchantDisplayBankNames(merchant) {
-  const benefits = Array.isArray(merchant?.searchProfile?.benefits)
-    ? merchant.searchProfile.benefits
-    : [];
-
   return Array.from(new Set(
-    benefits
-      .flatMap((benefit) => String(benefit?.bankName || '').split(','))
-      .map((bankName) => bankName.trim())
+    (Array.isArray(merchant?.banks) ? merchant.banks : [])
+      .map((bankName) => {
+        const definition = resolveClientLandingBank(bankName) || resolveLandingBank(bankName);
+        return definition?.name || String(bankName || '').trim();
+      })
       .filter(Boolean)
   ));
 }
@@ -426,7 +424,7 @@ export async function loadLandingSeoData({ db, merchantCollectionName, bank, cat
     merchantId: { $exists: true, $type: 'string' },
     activeBenefitCount: { $gt: 0 },
     categories: { $in: categoryValues },
-    'searchProfile.benefits.bankName': { $in: getBankPatterns(bank) },
+    banks: { $in: getBankPatterns(bank) },
   };
   const projection = {
     _id: 0,
@@ -438,7 +436,6 @@ export async function loadLandingSeoData({ db, merchantCollectionName, bank, cat
     benefitCount: 1,
     activeBenefitCount: 1,
     maxDiscountPercentage: 1,
-    searchProfile: 1,
   };
   const collection = db.collection(merchantCollectionName);
 

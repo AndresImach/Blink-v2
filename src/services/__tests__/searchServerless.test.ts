@@ -366,6 +366,82 @@ describe('handleSearch', () => {
     expect(JSON.parse(res.body || '{}').query.filters.bank).toBe('mercadopago');
   });
 
+  it('resolves Mongo fallback benefit-title matches from confirmed benefits', async () => {
+    isMeilisearchConfiguredMock.mockReturnValue(false);
+
+    const merchantQueries: unknown[] = [];
+    const benefitQueries: unknown[] = [];
+    const merchant = {
+      merchantId: 'merchant_freddo',
+      merchantName: 'Freddo',
+      merchantKey: 'freddo',
+      categories: ['gastronomia'],
+      banks: ['galicia'],
+      locations: [],
+      activeBenefitCount: 1,
+      benefitCount: 1,
+      hasOnlineBenefits: false,
+      maxDiscountPercentage: 20,
+      searchProfile: { aliases: ['freddo'], description: '', productTags: [] },
+    };
+    const benefit = {
+      id: 'freddo-helado',
+      merchantId: 'merchant_freddo',
+      eligibilities: [{
+        bank: 'galicia',
+        bankDisplayName: 'Banco Galicia',
+        cardTypes: [],
+        cardResolutionStatus: 'not_required',
+        subscription: null,
+        subscriptionResolutionStatus: 'not_required',
+      }],
+      benefitTitle: '20% OFF en helados',
+      description: '',
+      availableDays: [],
+      discountPercentage: 20,
+      caps: [],
+      online: false,
+      validUntil: '2099-12-31',
+    };
+
+    const db = {
+      collection(name: string) {
+        if (name === 'providers') {
+          return { find: () => createCursor([]) };
+        }
+        if (name === 'merchant_assets') {
+          return {
+            find(query: unknown) {
+              merchantQueries.push(query);
+              return createCursor([merchant]);
+            },
+          };
+        }
+        if (name === 'confirmed_benefits') {
+          return {
+            find(query: unknown) {
+              benefitQueries.push(query);
+              return createCursor([benefit]);
+            },
+          };
+        }
+        throw new Error(`Unexpected collection: ${name}`);
+      },
+    };
+
+    const res = createResponseCapture();
+    const url = new URL('https://example.com/api/search?q=helados&collection=confirmed_benefits');
+    await handleSearch({ method: 'GET' } as never, res as never, url, db as never);
+
+    expect(benefitQueries[0]).toHaveProperty('$or', expect.arrayContaining([
+      { benefitTitle: { $regex: expect.any(RegExp) } },
+    ]));
+    expect(merchantQueries[0]).toHaveProperty('$and.1.$or', expect.arrayContaining([
+      { merchantId: { $in: ['merchant_freddo'] } },
+    ]));
+    expect(JSON.parse(res.body || '{}').merchants[0].business.benefits[0].id).toBe('freddo-helado');
+  });
+
   it('rescues an exact-name merchant that meilisearch omitted from merchant candidates', async () => {
     isMeilisearchConfiguredMock.mockReturnValue(true);
     meiliSearchMock
