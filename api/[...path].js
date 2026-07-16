@@ -390,6 +390,12 @@ function text(res, statusCode, payload) {
 // Cache-Control directives
 const CC_METADATA = 's-maxage=43200, stale-while-revalidate=86400, max-age=3600';  // 12h CDN, 1h browser
 const CC_CONTENT  = 's-maxage=3600, stale-while-revalidate=7200, max-age=300';     // 1h CDN, 5m browser
+// Crawlable SSR pages (comercios/categorias/descuentos/home/search) are hit
+// across ~25k unique sitemap URLs by search/AI bots. Each hit runs Mongo
+// queries + HTML render, so a short CDN TTL means nearly every crawl is a cold,
+// CPU-heavy execution. These pages change slowly, so cache them long on the CDN
+// while keeping the browser copy short and serving stale during revalidation.
+const CC_SEO_PAGE = 's-maxage=86400, stale-while-revalidate=604800, max-age=600';   // 24h CDN, 7d SWR, 10m browser
 const CC_LOCATION = 'private, max-age=60';                                          // browser-only, 1m
 
 function setCacheControl(res, directive) {
@@ -2569,7 +2575,7 @@ async function handleHomeSeoPage(req, res, url, db, options = {}) {
     summary
   });
 
-  setCacheControl(res, CC_CONTENT);
+  setCacheControl(res, CC_SEO_PAGE);
   return html(res, 200, renderedHtml);
 }
 
@@ -2584,7 +2590,7 @@ async function handleSearchSeoPage(req, res, url, db, options = {}) {
     summary
   });
 
-  setCacheControl(res, CC_CONTENT);
+  setCacheControl(res, CC_SEO_PAGE);
   return html(res, 200, renderedHtml);
 }
 
@@ -2599,7 +2605,7 @@ async function handleDiscountSearchGuideSeoPage(req, res, url, db, options = {})
     summary
   });
 
-  setCacheControl(res, CC_CONTENT);
+  setCacheControl(res, CC_SEO_PAGE);
   return html(res, 200, renderedHtml);
 }
 
@@ -3078,7 +3084,7 @@ async function handleMerchantSeoPage(req, res, url, db, slugId, options = {}) {
     now: options.now || new Date()
   });
 
-  setCacheControl(res, CC_CONTENT);
+  setCacheControl(res, CC_SEO_PAGE);
   return html(res, 200, renderedHtml);
 }
 
@@ -3167,7 +3173,7 @@ async function handleCategorySeoPage(req, res, url, db, categoryParam, pageParam
     siteUrl: options.siteUrl || getCanonicalSiteUrl(url)
   });
 
-  setCacheControl(res, CC_CONTENT);
+  setCacheControl(res, CC_SEO_PAGE);
   return html(res, 200, renderedHtml);
 }
 
@@ -3242,7 +3248,7 @@ async function handleLandingSeoPage(req, res, url, db, bankParam, categoryParam,
     siteUrl: options.siteUrl || getCanonicalSiteUrl(url)
   });
 
-  setCacheControl(res, CC_CONTENT);
+  setCacheControl(res, CC_SEO_PAGE);
   return html(res, 200, renderedHtml);
 }
 
