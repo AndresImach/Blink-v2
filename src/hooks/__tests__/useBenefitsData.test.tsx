@@ -86,6 +86,24 @@ describe('useBenefitsData', () => {
 
     expect(result.current.error).toBe('Business search failed');
     expect(result.current.businesses).toEqual([]);
+    expect(fetchBusinessesPaginated).toHaveBeenCalledWith(expect.objectContaining({ view: 'summary' }));
+  });
+
+  it('requests the full payload when a client-side benefit filter needs every benefit', async () => {
+    vi.mocked(fetchBusinessesPaginated).mockResolvedValue({
+      success: true,
+      businesses: [mockBusiness],
+      pagination: { total: 1, limit: 20, offset: 0, hasMore: false },
+      filters: {},
+    });
+
+    renderHook(() => useBenefitsData({ network: 'visa' }), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => {
+      expect(fetchBusinessesPaginated).toHaveBeenCalledWith(expect.objectContaining({ view: 'full' }));
+    });
   });
 
   it('stops pagination without surfacing a primary error when a later page fails', async () => {

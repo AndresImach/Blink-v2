@@ -137,6 +137,7 @@ function MapPage() {
     hasInstallments,
     onlineOnly,
     sortByDistance: true,
+    dataView: 'full',
   }), [debouncedSearch, activeChip, minDiscount, maxDistance, availableDay, network, cardMode, hasInstallments, onlineOnly]);
 
   const { businesses: rawBusinesses, isLoading } = useBenefitsData(filters);

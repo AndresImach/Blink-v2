@@ -230,7 +230,8 @@ describe('BenefitDetailPage', () => {
       expect(fetchBusinessesPaginated).toHaveBeenCalledWith({
         search: 'legacy merchant',
         limit: 1,
-        includeExpired: true
+        includeExpired: true,
+        view: 'full'
       });
     });
     expect(await screen.findByText('Legacy Merchant')).toBeInTheDocument();

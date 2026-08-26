@@ -116,6 +116,24 @@ const BENEFIT_SUMMARY_PROJECTION = {
   rawBenefitCollection: 1,
   source: 1
 };
+const BENEFIT_LISTING_PROJECTION = {
+  _id: 1,
+  id: 1,
+  merchantId: 1,
+  merchantIds: 1,
+  eligibilities: 1,
+  benefitTitle: 1,
+  availableDays: 1,
+  discountPercentage: 1,
+  caps: 1,
+  online: 1,
+  installments: 1,
+  validUntil: 1,
+  sourceCollection: 1,
+  rawBenefitCollection: 1,
+  source: 1
+};
+const LISTING_BENEFIT_LIMIT = 5;
 
 const REQUIRED_PRODUCTION_ENV_VARS = [
   'MONGODB_URI'
@@ -815,6 +833,112 @@ async function countBenefitApplications(collection, match = {}) {
   return Number(result?.count || 0);
 }
 
+function compareBenefitSummariesForDisplay(left, right) {
+  const bankComparison = String(left?.bankName || '').localeCompare(
+    String(right?.bankName || ''),
+    'es',
+    { sensitivity: 'base' }
+  );
+  if (bankComparison !== 0) return bankComparison;
+
+  const titleComparison = String(left?.benefit || '').localeCompare(
+    String(right?.benefit || ''),
+    'es',
+    { sensitivity: 'base' }
+  );
+  if (titleComparison !== 0) return titleComparison;
+
+  return String(left?.id || '').localeCompare(String(right?.id || ''), 'es', { sensitivity: 'base' });
+}
+
+function sortBenefitSummariesForDisplay(benefits) {
+  return [...(benefits || [])].sort(compareBenefitSummariesForDisplay);
+}
+
+function getBenefitSummaryDiscount(summary) {
+  const match = String(summary?.rewardRate || '').match(/(\d+(?:[.,]\d+)?)%/);
+  return match ? Number(match[1].replace(',', '.')) : 0;
+}
+
+function getBenefitSummaryProviderNames(benefits) {
+  return Array.from(new Set(
+    (benefits || [])
+      .map((benefit) => benefit?.bankName)
+      .filter(Boolean)
+  ));
+}
+
+function getMaxBenefitSummaryDiscount(benefits) {
+  return (benefits || []).reduce(
+    (maximum, benefit) => Math.max(maximum, getBenefitSummaryDiscount(benefit)),
+    0
+  );
+}
+
+function selectListingBenefitSummaries(benefits, limit = LISTING_BENEFIT_LIMIT) {
+  return [...(benefits || [])]
+    .sort((left, right) => {
+      const discountDifference = getBenefitSummaryDiscount(right) - getBenefitSummaryDiscount(left);
+      if (discountDifference !== 0) return discountDifference;
+
+      const installmentDifference = Number(right?.installments || 0) - Number(left?.installments || 0);
+      if (installmentDifference !== 0) return installmentDifference;
+
+      return compareBenefitSummariesForDisplay(left, right);
+    })
+    .slice(0, limit)
+    .sort(compareBenefitSummariesForDisplay)
+    .map((benefit) => ({
+      id: benefit.id,
+      bankName: benefit.bankName,
+      cardName: benefit.cardName,
+      cardTypes: benefit.cardTypes,
+      benefit: benefit.benefit,
+      rewardRate: benefit.rewardRate,
+      tipo: benefit.tipo,
+      cuando: benefit.cuando,
+      valor: benefit.valor,
+      tope: benefit.tope,
+      installments: benefit.installments,
+      validUntil: benefit.validUntil,
+      subscriptionIds: benefit.subscriptionIds,
+      ...(benefit.sourceCollection ? { sourceCollection: benefit.sourceCollection } : {}),
+      ...(benefit.rawBenefitCollection ? { rawBenefitCollection: benefit.rawBenefitCollection } : {}),
+      ...(benefit.source ? { source: benefit.source } : {})
+    }));
+}
+
+function getBusinessResponseView(searchParams, merchantId = null) {
+  return merchantId || searchParams.get('view') === 'full' ? 'full' : 'summary';
+}
+
+function projectBenefitMerchantIdsForPage(merchantIds, includeDetails = true) {
+  return {
+    ...(includeDetails ? BENEFIT_SUMMARY_PROJECTION : BENEFIT_LISTING_PROJECTION),
+    merchantIds: {
+      $filter: {
+        input: effectiveMerchantIdsExpression(),
+        as: 'merchantId',
+        cond: { $in: ['$$merchantId', merchantIds] }
+      }
+    }
+  };
+}
+
+function compactBusinessLocations(locations) {
+  const first = dedupeLocations(Array.isArray(locations) ? locations : [])[0];
+  if (!first) return [];
+
+  return [{
+    ...(first.formattedAddress ? { formattedAddress: first.formattedAddress } : {}),
+    ...(first.name ? { name: first.name } : {}),
+    ...(Array.isArray(first.types) && first.types.length > 0 ? { types: first.types.slice(0, 1) } : {}),
+    ...(first.addressComponents?.locality
+      ? { addressComponents: { locality: first.addressComponents.locality } }
+      : {})
+  }];
+}
+
 function groupBenefitSummariesByMerchant(rawBenefits, cardNameLookup, allowedMerchantIds = null) {
   const allowed = allowedMerchantIds ? new Set(allowedMerchantIds) : null;
   const grouped = new Map();
@@ -828,6 +952,10 @@ function groupBenefitSummariesByMerchant(rawBenefits, cardNameLookup, allowedMer
       }
       grouped.get(merchantId).push(summary);
     }
+  }
+
+  for (const [merchantId, benefits] of grouped) {
+    grouped.set(merchantId, sortBenefitSummariesForDisplay(benefits));
   }
 
   return grouped;
@@ -1004,7 +1132,6 @@ function buildBusinessBenefitSummary(benefit, cardNameLookup) {
 
   return {
     id: benefit?.id || benefit?._id?.toString?.() || null,
-    merchantIds: getEffectiveBenefitMerchantIds(benefit),
     eligibilities,
     bankName: providerNames.length > 0 ? providerNames.join(', ') : 'Proveedor',
     cardName: cardNames[0] || 'Tarjeta de credito',
@@ -1677,6 +1804,9 @@ function mapMerchantHitToResponse(hit, scoreMeta, filters) {
     productTags: hit.productTags || [],
     categories: hit.categories || [],
     banks: hit.banks || [],
+    benefitCount: Number(hit.popularity || 0),
+    maxDiscountPercentage: Number(hit.maxDiscount || 0),
+    locationCount: Array.isArray(hit.locations) ? hit.locations.length : 0,
     score: scoreMeta.score,
     reasons: scoreMeta.reasons,
     business: withDistance
@@ -1704,24 +1834,37 @@ async function hydrateSearchMerchantsWithBenefits(db, collectionName, merchants,
     benefitQuery['eligibilities.bank'] = { $in: bankPatterns };
   }
   applyActiveBenefitsFilter(benefitQuery, searchParams);
+  const responseView = getBusinessResponseView(searchParams);
 
   const rawBenefits = await db.collection(collectionName)
-    .find(benefitQuery, { projection: BENEFIT_SUMMARY_PROJECTION })
-    .sort({ 'eligibilities.bank': 1, benefitTitle: 1 })
+    .find(benefitQuery, { projection: projectBenefitMerchantIdsForPage(merchantIds, responseView === 'full') })
     .toArray();
   const cardNameLookup = await resolveCardNameLookup(db, rawBenefits);
   const benefitsByMerchant = groupBenefitSummariesByMerchant(rawBenefits, cardNameLookup, merchantIds);
+  const hasBenefitFilter = bankPatterns.length > 0;
 
   return merchants.map((merchant) => {
     if (!merchant?.merchantId) {
       return merchant;
     }
 
+    const benefits = benefitsByMerchant.get(merchant.merchantId) || [];
+    const locations = Array.isArray(merchant.business?.location)
+      ? merchant.business.location
+      : (Array.isArray(merchant.locations) ? merchant.locations : []);
+
     return {
       ...merchant,
       business: {
         ...(merchant.business || {}),
-        benefits: benefitsByMerchant.get(merchant.merchantId) || []
+        benefits: responseView === 'full' ? benefits : selectListingBenefitSummaries(benefits),
+        location: responseView === 'full' ? locations : compactBusinessLocations(locations),
+        benefitCount: hasBenefitFilter ? benefits.length : (merchant.benefitCount || benefits.length),
+        locationCount: merchant.locationCount || locations.length,
+        banks: hasBenefitFilter ? getBenefitSummaryProviderNames(benefits) : (merchant.banks || []),
+        maxDiscountPercentage: hasBenefitFilter
+          ? getMaxBenefitSummaryDiscount(benefits)
+          : (merchant.maxDiscountPercentage || getMaxBenefitSummaryDiscount(benefits))
       }
     };
   });
@@ -2750,6 +2893,7 @@ async function handleGetBusinesses(req, res, url, db) {
   const subscription = searchParams.get('subscription');
   const search = searchParams.get('search');
   const merchantId = searchParams.get('merchantId')?.trim() || null;
+  const responseView = getBusinessResponseView(searchParams, merchantId);
   const onlineOnly = searchParams.get('online') === 'true';
   const limitNum = Math.min(Math.max(toPositiveInt(searchParams.get('limit'), 20), 1), 100);
   const offsetNum = Math.max(toPositiveInt(searchParams.get('offset'), 0), 0);
@@ -2822,12 +2966,20 @@ async function handleGetBusinesses(req, res, url, db) {
 
   const merchantCollection = db.collection(MERCHANT_ASSETS_COLLECTION);
   const totalPromise = merchantCollection.countDocuments(merchantQuery);
+  const includeFullLocations = responseView === 'full' || hasLocation;
   const merchantProjection = {
     _id: 0,
     merchantId: 1,
     merchantName: 1,
     categories: 1,
-    locations: 1,
+    locations: includeFullLocations ? 1 : { $slice: [{ $ifNull: ['$locations', []] }, 1] },
+    ...(!includeFullLocations && {
+      locationCount: { $size: { $ifNull: ['$locations', []] } }
+    }),
+    banks: 1,
+    benefitCount: 1,
+    activeBenefitCount: 1,
+    maxDiscountPercentage: 1,
     hasOnlineBenefits: 1,
     'searchProfile.description': 1,
     imageUrl: 1,
@@ -2971,32 +3123,49 @@ async function handleGetBusinesses(req, res, url, db) {
 
   const rawBenefits = merchantIds.length > 0
     ? await db.collection(collectionName)
-      .find(benefitQuery, { projection: BENEFIT_SUMMARY_PROJECTION })
-      .sort({ 'eligibilities.bank': 1, benefitTitle: 1 })
+      .find(benefitQuery, { projection: projectBenefitMerchantIdsForPage(merchantIds, responseView === 'full') })
       .toArray()
     : [];
   const cardNameLookup = await resolveCardNameLookup(db, rawBenefits);
   const benefitsByMerchant = groupBenefitSummariesByMerchant(rawBenefits, cardNameLookup, merchantIds);
+  const hasBenefitFilter = Boolean(
+    (bankPatterns && bankPatterns.length > 0) || subscription || onlineOnly
+  );
 
   const businesses = pagedMerchants
-    .map((merchant) => ({
-      id: merchant.merchantId,
-      name: merchant.merchantName,
-      category: Array.isArray(merchant.categories) && merchant.categories.length > 0
-        ? merchant.categories[0]
-        : 'otros',
-      description: merchant.searchProfile?.description || '',
-      rating: 5,
-      locations: dedupeLocations(Array.isArray(merchant.locations) ? merchant.locations : []),
-      image: pickBusinessImage(merchant),
-      logo: merchant.logoUrl || null,
-      coverImage: merchant.coverUrl || null,
-      benefits: benefitsByMerchant.get(merchant.merchantId) || [],
-      distance: merchant.distance ?? null,
-      distanceText: merchant.distanceText ?? null,
-      isNearby: Boolean(merchant.isNearby),
-      hasOnline: Boolean(merchant.hasOnlineBenefits)
-    }))
+    .map((merchant) => {
+      const locations = dedupeLocations(Array.isArray(merchant.locations) ? merchant.locations : []);
+      const benefits = benefitsByMerchant.get(merchant.merchantId) || [];
+
+      return {
+        id: merchant.merchantId,
+        name: merchant.merchantName,
+        category: Array.isArray(merchant.categories) && merchant.categories.length > 0
+          ? merchant.categories[0]
+          : 'otros',
+        description: merchant.searchProfile?.description || '',
+        rating: 5,
+        locations: responseView === 'full' ? locations : compactBusinessLocations(locations),
+        locationCount: Number(merchant.locationCount ?? locations.length),
+        image: pickBusinessImage(merchant),
+        logo: merchant.logoUrl || null,
+        coverImage: merchant.coverUrl || null,
+        benefits: responseView === 'full' ? benefits : selectListingBenefitSummaries(benefits),
+        benefitCount: hasBenefitFilter
+          ? benefits.length
+          : (includeExpired ? Number(merchant.benefitCount || benefits.length) : Number(merchant.activeBenefitCount || benefits.length)),
+        banks: hasBenefitFilter
+          ? getBenefitSummaryProviderNames(benefits)
+          : (Array.isArray(merchant.banks) ? merchant.banks : []),
+        maxDiscountPercentage: hasBenefitFilter
+          ? getMaxBenefitSummaryDiscount(benefits)
+          : Number(merchant.maxDiscountPercentage || getMaxBenefitSummaryDiscount(benefits)),
+        distance: merchant.distance ?? null,
+        distanceText: merchant.distanceText ?? null,
+        isNearby: Boolean(merchant.isNearby),
+        hasOnline: Boolean(merchant.hasOnlineBenefits)
+      };
+    })
     .filter((merchant) => merchant.benefits.length > 0);
   const total = await totalPromise;
 
@@ -3017,6 +3186,7 @@ async function handleGetBusinesses(req, res, url, db) {
       ...(search && { search }),
       ...(onlineOnly && { online: 'true' }),
       ...(subscription && { subscription }),
+      view: responseView,
       includeExpired,
       ...(hasLocation && { lat: userLat, lng: userLng })
     }
@@ -3061,13 +3231,14 @@ async function handleMerchantSeoPage(req, res, url, db, slugId, options = {}) {
     .find(
       buildBenefitMerchantLinkQuery(parsed.merchantId),
       {
-        projection: BENEFIT_SUMMARY_PROJECTION
+        projection: projectBenefitMerchantIdsForPage([parsed.merchantId])
       }
     )
-    .sort({ 'eligibilities.bank': 1, benefitTitle: 1 })
     .toArray();
   const cardNameLookup = await resolveCardNameLookup(db, rawBenefits);
-  const benefits = rawBenefits.map((benefit) => buildBusinessBenefitSummary(benefit, cardNameLookup));
+  const benefits = sortBenefitSummariesForDisplay(
+    rawBenefits.map((benefit) => buildBusinessBenefitSummary(benefit, cardNameLookup))
+  );
   const appShell = options.appShell || readViteAppShell();
   const renderedHtml = renderMerchantSeoHtml({
     appShell,

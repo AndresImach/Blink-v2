@@ -108,6 +108,7 @@ describe("Benefit detail page error handling", () => {
         search: "test business",
         limit: 1,
         includeExpired: true,
+        view: 'full',
       });
     });
     expect(await screen.findByText("Legacy Business")).toBeInTheDocument();

@@ -122,6 +122,7 @@ export async function fetchSearch(options: {
   lat?: number;
   lng?: number;
   debug?: boolean;
+  view?: 'summary' | 'full';
 }): Promise<SearchApiResponse> {
   const params = new URLSearchParams();
   params.append('q', options.q);
@@ -135,6 +136,7 @@ export async function fetchSearch(options: {
     params.append('lng', String(options.lng));
   }
   if (options.debug) params.append('debug', '1');
+  if (options.view) params.append('view', options.view);
 
   const response = await fetch(`${BASE_URL}/api/search?${params.toString()}`);
   if (!response.ok) {
@@ -233,6 +235,7 @@ export async function fetchBusinessesPaginated(options: {
   lng?: number;
   online?: boolean;
   includeExpired?: boolean;
+  view?: 'summary' | 'full';
 } = {}): Promise<BusinessesApiResponse> {
   const {
     limit = 20,
@@ -246,7 +249,8 @@ export async function fetchBusinessesPaginated(options: {
     lat,
     lng,
     online,
-    includeExpired
+    includeExpired,
+    view
   } = options;
   const normalizedMerchantId = merchantId?.trim();
 
@@ -259,7 +263,8 @@ export async function fetchBusinessesPaginated(options: {
         category,
         bank,
         lat,
-        lng
+        lng,
+        view
       });
       return mapSearchResponseToBusinessesResponse(searchData, {
         limit,
@@ -284,6 +289,7 @@ export async function fetchBusinessesPaginated(options: {
   if (subscription) params.append('subscription', subscription);
   if (online) params.append('online', 'true');
   if (includeExpired) params.append('includeExpired', 'true');
+  if (view) params.append('view', view);
   // Exact coords take priority — only send one or the other
   if (lat !== undefined && lng !== undefined) {
     params.append('lat', lat.toString());

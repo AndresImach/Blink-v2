@@ -71,6 +71,9 @@ const BusinessCard: React.FC<BusinessCardProps> = React.memo(({
   };
 
   const getDiscountPercentage = (business: Business): string => {
+    if (business.maxDiscountPercentage && business.maxDiscountPercentage > 0) {
+      return `hasta ${business.maxDiscountPercentage}% OFF`;
+    }
     const benefits = business.benefits || [];
     const discounts = benefits
       .map((benefit) => {
@@ -95,7 +98,7 @@ const BusinessCard: React.FC<BusinessCardProps> = React.memo(({
   };
 
   const getBenefitCount = (business: Business): string => {
-    const count = (business.benefits || []).length;
+    const count = business.benefitCount || (business.benefits || []).length;
     return `+${count}`;
   };
 
