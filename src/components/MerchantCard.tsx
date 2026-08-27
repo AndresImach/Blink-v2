@@ -37,13 +37,17 @@ const getMaxInstallments = (benefits: Business['benefits']) => {
   return max;
 };
 
-const getBankBadges = (benefits: Business['benefits']): string[] => {
+const getBankBadges = (benefits: Business['benefits'], businessBanks: string[] = []): string[] => {
   const seen = new Set<string>();
   const badges: string[] = [];
-  benefits.forEach((b) => {
-    if (!b.bankName) return;
+  const providerNames = businessBanks.length > 0
+    ? businessBanks
+    : benefits.map((benefit) => getBenefitProviderDisplayName(benefit)).filter(Boolean);
 
-    const descriptor = toBankDescriptor(getBenefitProviderDisplayName(b));
+  providerNames.forEach((bankName) => {
+    if (!bankName) return;
+
+    const descriptor = toBankDescriptor(bankName);
     if (!seen.has(descriptor.token)) {
       seen.add(descriptor.token);
       badges.push(descriptor.code);
@@ -59,10 +63,10 @@ const MerchantCard: React.FC<MerchantCardProps> = React.memo(({ business, onClic
   const favorited = isFavorite(business.id);
   const activeBenefits = filterActiveBenefits(business.benefits || []);
 
-  const bankBadges = getBankBadges(activeBenefits);
+  const bankBadges = getBankBadges(activeBenefits, business.banks);
   const visibleBadges = bankBadges.slice(0, 3);
   const remaining = bankBadges.length - 3;
-  const maxDiscount = getMaxDiscount(activeBenefits);
+  const maxDiscount = business.maxDiscountPercentage || getMaxDiscount(activeBenefits);
   const maxInstallments = getMaxInstallments(activeBenefits);
   const categoryStyle = CATEGORY_STYLE[business.category] ?? { bg: '#DCFCE7', color: '#16A34A' };
   const imageSrc = getOptimizedImageUrl(business.image, { width: 96 });
@@ -122,8 +126,8 @@ const MerchantCard: React.FC<MerchantCardProps> = React.memo(({ business, onClic
             )}
           </div>
           <span className="text-[10px] text-blink-muted mt-[3px]">
-            {activeBenefits.length > 0
-              ? `${activeBenefits.length} ${activeBenefits.length !== 1 ? 'beneficios' : 'beneficio'}`
+            {(business.benefitCount || activeBenefits.length) > 0
+              ? `${business.benefitCount || activeBenefits.length} ${(business.benefitCount || activeBenefits.length) !== 1 ? 'beneficios' : 'beneficio'}`
               : 'Sin beneficios activos'}
           </span>
         </div>

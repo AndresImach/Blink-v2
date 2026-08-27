@@ -354,7 +354,7 @@ function buildProductDocuments(merchantDocuments) {
     for (const productTag of merchant.productTags || []) {
       if (!productMap.has(productTag)) {
         productMap.set(productTag, {
-          entityId: `product_${productTag}`,
+          entityId: `product_${slugify(productTag)}`,
           entityType: 'product',
           productTerm: productTag,
           intentTags: new Set(),

@@ -396,8 +396,107 @@ describe('merchant-first serverless helpers', () => {
       'shared-benefit',
       'shared-benefit',
     ]);
-    expect(payload.businesses[0].benefits[0].merchantIds).toEqual(['merchant_1', 'merchant_2']);
+    expect(payload.businesses[0].benefits[0]).not.toHaveProperty('merchantIds');
     expectBenefitQueryForMerchants(benefitQueries[0], ['merchant_1', 'merchant_2']);
+  });
+
+  it('handleGetBusinesses returns a bounded listing payload and filters merchantIds in Mongo projection', async () => {
+    const benefitFindOptions: Array<{ projection?: Record<string, unknown> }> = [];
+    const merchant = {
+      merchantId: 'merchant_1',
+      merchantName: 'Comercio grande',
+      categories: ['shopping'],
+      locations: [
+        { formattedAddress: 'Sucursal 1', lat: -34.6, lng: -58.38 },
+        { formattedAddress: 'Sucursal 2', lat: -34.61, lng: -58.39 },
+      ],
+      banks: ['Banco Galicia'],
+      activeBenefitCount: 6,
+      benefitCount: 6,
+      maxDiscountPercentage: 60,
+      hasOnlineBenefits: true,
+    };
+    const oversizedMerchantIds = ['merchant_1', ...Array.from({ length: 10_000 }, (_, index) => `other_${index}`)];
+    const benefits = Array.from({ length: 6 }, (_, index) => ({
+      id: `benefit-${index + 1}`,
+      merchantIds: index === 0 ? oversizedMerchantIds : ['merchant_1'],
+      eligibilities: [{
+        bank: 'galicia',
+        bankDisplayName: 'Banco Galicia',
+        cardTypes: [],
+        cardResolutionStatus: 'not_required',
+        subscription: null,
+        subscriptionResolutionStatus: 'not_required',
+      }],
+      benefitTitle: `${(index + 1) * 10}% OFF`,
+      discountPercentage: (index + 1) * 10,
+      availableDays: ['Lunes'],
+      termsAndConditions: 'Condiciones extensas que no pertenecen al listado',
+      description: 'Detalle completo que se carga al abrir el comercio',
+      validUntil: '2099-12-31',
+    }));
+
+    const db = {
+      collection(name: string) {
+        if (name === 'providers') {
+          return { find: () => createCursor([]) };
+        }
+        if (name === 'merchant_assets') {
+          return {
+            async countDocuments() { return 1; },
+            find() { return createCursor([merchant]); },
+          };
+        }
+        if (name === 'confirmed_benefits') {
+          return {
+            find(_query: unknown, options: { projection?: Record<string, unknown> }) {
+              benefitFindOptions.push(options);
+              return createCursor(benefits);
+            },
+          };
+        }
+        if (name === 'bank_cards') {
+          return { find: () => createCursor([]) };
+        }
+        throw new Error(`Unexpected collection: ${name}`);
+      },
+    };
+
+    const res = createResponseCapture();
+    const url = new URL('https://example.com/api/businesses?collection=confirmed_benefits&limit=20&offset=0');
+    await handleGetBusinesses({ method: 'GET' } as never, res as never, url, db as never);
+
+    const payload = JSON.parse(res.body || '{}');
+    const business = payload.businesses[0];
+    const merchantIdsProjection = benefitFindOptions[0].projection?.merchantIds as {
+      $filter: { cond: { $in: [string, string[]] } };
+    };
+
+    expect(payload.filters.view).toBe('summary');
+    expect(business.benefitCount).toBe(6);
+    expect(business.benefits).toHaveLength(5);
+    expect(business.benefits.map((benefit: { id: string }) => benefit.id)).not.toContain('benefit-1');
+    expect(business.benefits.every((benefit: Record<string, unknown>) => !('merchantIds' in benefit))).toBe(true);
+    expect(business.benefits.every((benefit: Record<string, unknown>) => !('condicion' in benefit))).toBe(true);
+    expect(business.locationCount).toBe(2);
+    expect(business.locations).toHaveLength(1);
+    expect(merchantIdsProjection.$filter.cond.$in).toEqual(['$$merchantId', ['merchant_1']]);
+    expect(benefitFindOptions[0].projection).not.toHaveProperty('termsAndConditions');
+    expect(benefitFindOptions[0].projection).not.toHaveProperty('description');
+    expect(Buffer.byteLength(res.body || '', 'utf8')).toBeLessThan(10_000);
+
+    const detailRes = createResponseCapture();
+    const detailUrl = new URL('https://example.com/api/businesses?collection=confirmed_benefits&merchantId=merchant_1&limit=1');
+    await handleGetBusinesses({ method: 'GET' } as never, detailRes as never, detailUrl, db as never);
+
+    const detailPayload = JSON.parse(detailRes.body || '{}');
+    expect(detailPayload.filters.view).toBe('full');
+    expect(detailPayload.businesses[0].benefits).toHaveLength(6);
+    expect(detailPayload.businesses[0].locations).toHaveLength(2);
+    expect(detailPayload.businesses[0].benefits[0]).toHaveProperty('condicion');
+    expect(detailPayload.businesses[0].benefits[0]).not.toHaveProperty('merchantIds');
+    expect(benefitFindOptions[1].projection).toHaveProperty('termsAndConditions', 1);
+    expect(benefitFindOptions[1].projection).toHaveProperty('description', 1);
   });
 
   it('handleGetStats counts merchant-benefit applications instead of benefit documents', async () => {

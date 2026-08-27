@@ -45,6 +45,7 @@ async function fetchLandingBusinesses(bank: string, category: string): Promise<B
       category,
       limit: PAGE_SIZE,
       offset: page * PAGE_SIZE,
+      view: 'full',
     });
 
     const pageItems = response.businesses || [];

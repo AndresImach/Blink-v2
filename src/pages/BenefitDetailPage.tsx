@@ -115,7 +115,7 @@ const fetchBusinessForRouteId = async (routeId: string): Promise<Business | null
   }
 
   const searchName = routeId.replace(/-/g, ' ');
-  const response = await fetchBusinessesPaginated({ search: searchName, limit: 1, includeExpired: true });
+  const response = await fetchBusinessesPaginated({ search: searchName, limit: 1, includeExpired: true, view: 'full' });
 
   if (Array.isArray(response)) {
     return response[0] || null;
@@ -432,10 +432,6 @@ function BenefitDetailPage() {
   const isFalsePositiveCap = topeAmount !== null && topeAmount === minPurchaseAmount;
   const maxSpend = topeAmount && !isFalsePositiveCap && discount > 0 ? topeAmount / (discount / 100) : null;
   const paymentMethod = getPaymentMethod(benefit);
-  // caps with amount: 0 are backend sentinels for "no cap"; only non-zero amounts count
-  const hasTransactionCap = (benefit.caps ?? []).some(
-    c => c != null && c.resetsEvery !== 'PER_USER' && c.resetsEvery !== 'OTHER' && typeof c.amount === 'number' && c.amount > 0,
-  );
   const hasAnyCap = (benefit.caps ?? []).some(c => c != null && typeof c.amount === 'number' && c.amount > 0);
 
   const formatDate = (dateStr: string | null | undefined) => {

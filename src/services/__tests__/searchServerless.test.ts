@@ -875,7 +875,7 @@ describe('handleSearch', () => {
       'shared-benefit',
       'shared-benefit'
     ]);
-    expect(payload.merchants[0].business.benefits[0].merchantIds).toEqual(['merchant_adidas', 'merchant_sporting']);
+    expect(payload.merchants[0].business.benefits[0]).not.toHaveProperty('merchantIds');
     expectBenefitQueryForMerchants(benefitFindQuery, ['merchant_adidas', 'merchant_sporting']);
   });
 

@@ -58,6 +58,12 @@ export interface Business {
   location: CanonicalLocation[];
   image: string;
   benefits: BankBenefit[];
+  /** Total benefits for the merchant; list responses only include a small preview. */
+  benefitCount?: number;
+  /** Total branches; list responses only include a primary location preview. */
+  locationCount?: number;
+  banks?: string[];
+  maxDiscountPercentage?: number;
   aliases?: string[];
   // Enhanced fields for new functionality
   lastUpdated?: number;

@@ -25,7 +25,7 @@ const getCategoryStyle = (category: string) => {
 };
 
 const getBusinessMaxDiscount = (business: Business) => {
-  let max = 0;
+  let max = business.maxDiscountPercentage || 0;
 
   business.benefits.forEach((benefit) => {
     const match = benefit.rewardRate.match(/(\d+)%/);
@@ -51,10 +51,12 @@ const getBusinessBankBadges = (business: Business) => {
   const seen = new Set<string>();
   const badges: string[] = [];
 
-  business.benefits.forEach((benefit) => {
-    if (!benefit.bankName) return;
+  const providerNames = business.banks?.length
+    ? business.banks
+    : business.benefits.map((benefit) => getBenefitProviderDisplayName(benefit));
 
-    const providerName = getBenefitProviderDisplayName(benefit);
+  providerNames.forEach((providerName) => {
+    if (!providerName) return;
     const descriptor = toBankDescriptor(providerName);
     if (!seen.has(descriptor.token)) {
       seen.add(descriptor.token);
@@ -81,6 +83,7 @@ function BusinessResultCard({
   const maxInstallments = getBusinessMaxInstallments(business);
   const categoryStyle = getCategoryStyle(business.category);
   const imageSrc = getOptimizedImageUrl(business.image, { width: 96 });
+  const benefitCount = business.benefitCount || business.benefits.length;
   const baseClassName = `w-full bg-white rounded-2xl cursor-pointer transition-all duration-200 active:scale-[0.98] hover:-translate-y-0.5 hover:shadow-soft-md overflow-hidden text-left ${
     variant === 'card' ? 'flex flex-col' : variant === 'desktop-card' ? 'flex lg:flex-col' : 'flex'
   } ${className}`;
@@ -141,7 +144,7 @@ function BusinessResultCard({
           )}
         </div>
         <span className="block text-[10px] text-blink-muted mt-[7px]">
-          {business.benefits.length} {business.benefits.length !== 1 ? 'beneficios' : 'beneficio'}
+          {benefitCount} {benefitCount !== 1 ? 'beneficios' : 'beneficio'}
         </span>
       </div>
 
@@ -215,7 +218,7 @@ function BusinessResultCard({
             )}
           </h2>
           <p className="mt-1 text-sm text-blink-muted">
-            {business.benefits.length} {business.benefits.length !== 1 ? 'beneficios' : 'beneficio'}
+            {benefitCount} {benefitCount !== 1 ? 'beneficios' : 'beneficio'}
           </p>
         </div>
 

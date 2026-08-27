@@ -47,6 +47,7 @@ export interface BenefitsFilters {
     hasInstallments?: boolean; // Filter for installment availability
     onlineOnly?: boolean; // Filter for businesses with online benefits (server-side)
     sortByDistance?: boolean; // Send exact coords to server for precise distance sort (bypasses CDN)
+    dataView?: 'summary' | 'full'; // Full is reserved for map/detail-style consumers.
 }
 
 const requireSuccessfulBusinessesResponse = (
@@ -73,6 +74,14 @@ export function useBenefitsData(filters?: BenefitsFilters): UseBenefitsDataRetur
     const geohash = !sortByDistance && position
         ? encodeGeohash(position.latitude, position.longitude)
         : undefined;
+    const needsCompleteBenefitSet = Boolean(
+        filters?.minDiscount !== undefined ||
+        filters?.availableDay !== undefined ||
+        filters?.network !== undefined ||
+        filters?.cardMode !== undefined ||
+        filters?.hasInstallments !== undefined
+    );
+    const dataView = filters?.dataView === 'full' || needsCompleteBenefitSet ? 'full' : 'summary';
 
     // Fetch businesses with infinite query for pagination.
     // sortByDistance=true → sends exact lat/lng to server (precise sort, bypasses CDN cache).
@@ -107,6 +116,7 @@ export function useBenefitsData(filters?: BenefitsFilters): UseBenefitsDataRetur
                 ...(filters?.bank && { bank: filters.bank }),
                 ...(filters?.subscription && { subscription: filters.subscription }),
                 ...(filters?.onlineOnly && { online: true }),
+                view: dataView,
             });
             return requireSuccessfulBusinessesResponse(response, offset === 0);
         },

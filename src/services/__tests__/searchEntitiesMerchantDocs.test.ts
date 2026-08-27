@@ -144,4 +144,34 @@ describe('buildSearchDatasetFromMerchantDocs', () => {
 
     expect(dataset.merchantDocuments[0].banks).toEqual([]);
   });
+
+  it('uses Meilisearch-safe identifiers for multi-word product terms', () => {
+    const dataset = buildSearchDatasetFromMerchantDocs([
+      {
+        merchantId: 'merchant_1',
+        merchantName: 'On City',
+        merchantKey: 'on-city',
+        categories: ['shopping'],
+        banks: [],
+        locations: [],
+        activeBenefitCount: 1,
+        benefitCount: 1,
+        searchProfile: {
+          aliases: [],
+          description: '',
+          productTags: ['on city'],
+          intentTags: [],
+          benefits: [],
+        },
+      },
+    ]);
+
+    expect(dataset.productDocuments).toEqual([
+      expect.objectContaining({
+        entityId: 'product_on-city',
+        productTerm: 'on city',
+      }),
+    ]);
+    expect(dataset.productDocuments[0].entityId).toMatch(/^[A-Za-z0-9_-]+$/);
+  });
 });
