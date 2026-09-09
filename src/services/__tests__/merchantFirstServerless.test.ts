@@ -1641,6 +1641,22 @@ describe('merchant-first serverless helpers', () => {
     expect(res.body).toContain('Beneficio compartido');
     expect(res.body).toContain('href="https://www.blinkapp.com.ar/comercios/coto--merchant_1"');
     expect(res.body).toContain('src="/assets/index-test.js"');
+    const bootstrapJson = res.body.match(
+      /<script id="blink-merchant-bootstrap" type="application\/json">([\s\S]*?)<\/script>/,
+    )?.[1];
+    expect(bootstrapJson).toBeTruthy();
+    const bootstrap = JSON.parse(bootstrapJson || '{}');
+    expect(bootstrap.merchantId).toBe('merchant_1');
+    expect(bootstrap.business).toMatchObject({
+      id: 'merchant_1',
+      name: 'Coto',
+      category: 'supermercados',
+      benefitCount: 1,
+      locationCount: 1,
+      hasOnline: false,
+    });
+    expect(bootstrap.business.location).toHaveLength(1);
+    expect(bootstrap.business.benefits).toHaveLength(2);
     expect(merchantQueries[0]).toEqual({
       isActive: { $ne: false },
       merchantId: 'merchant_1',

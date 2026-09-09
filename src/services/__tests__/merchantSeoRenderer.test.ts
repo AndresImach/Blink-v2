@@ -107,6 +107,39 @@ describe('merchant SEO renderer', () => {
     expect(html).toContain('promociones bancarias');
   });
 
+  it('embeds an escaped business payload for client hydration', () => {
+    const bootstrapBusiness = {
+      id: 'merchant_1',
+      name: 'Coto </script><script>alert(1)</script>',
+      category: 'supermercados',
+      description: '',
+      rating: 5,
+      location: [],
+      image: '/coto.png',
+      benefits: [],
+    };
+    const html = renderMerchantSeoHtml({
+      appShell,
+      siteUrl: 'https://www.blinkapp.com.ar',
+      path: '/comercios/coto--merchant_1',
+      merchant: {
+        merchantId: 'merchant_1',
+        merchantName: 'Coto',
+      },
+      bootstrapBusiness,
+    });
+
+    const bootstrapJson = html.match(
+      /<script id="blink-merchant-bootstrap" type="application\/json">([\s\S]*?)<\/script>/,
+    )?.[1];
+    expect(bootstrapJson).toBeTruthy();
+    expect(html).not.toContain('</script><script>alert(1)</script>');
+    expect(JSON.parse(bootstrapJson || '{}')).toEqual({
+      merchantId: 'merchant_1',
+      business: bootstrapBusiness,
+    });
+  });
+
   it('renders multi-bank MODO benefits with compact provider text', () => {
     const longBankName = 'Banco Nación, Galicia, NaranjaX';
     const html = renderMerchantSeoHtml({

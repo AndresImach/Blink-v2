@@ -452,7 +452,14 @@ function buildBodyHtml({ merchant, activeBenefits, pastBenefits, description, fa
   ].filter(Boolean).join('\n');
 }
 
-function buildHeadHtml({ title, description, absoluteUrl, imageUrl, structuredData }) {
+function buildHeadHtml({
+  title,
+  description,
+  absoluteUrl,
+  imageUrl,
+  structuredData,
+  bootstrapBusiness
+}) {
   const escapedTitle = escapeHtml(title);
   const escapedDescription = escapeHtml(description);
   const escapedUrl = escapeHtml(absoluteUrl);
@@ -475,6 +482,12 @@ function buildHeadHtml({ title, description, absoluteUrl, imageUrl, structuredDa
     `    <meta name="twitter:description" content="${escapedDescription}" />`,
     `    <meta name="twitter:image" content="${escapedImage}" />`,
     `    <script type="application/ld+json" data-blink-merchant-seo="structured-data" data-blink-seo-url="${escapedUrl}">${escapeJsonForHtml(structuredData)}</script>`,
+    bootstrapBusiness
+      ? `    <script id="blink-merchant-bootstrap" type="application/json">${escapeJsonForHtml({
+        merchantId: String(bootstrapBusiness.id || ''),
+        business: bootstrapBusiness
+      })}</script>`
+      : '',
     '    <style data-blink-merchant-seo>',
     '      .blink-seo-shell{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;max-width:960px;margin:0 auto;padding:32px 20px 56px;color:#111827;background:#fff}',
     '      .blink-seo-breadcrumb{display:flex;gap:8px;flex-wrap:wrap;font-size:14px;margin-bottom:32px;color:#4b5563}.blink-seo-breadcrumb a{color:#111827}',
@@ -605,7 +618,8 @@ export function renderMerchantSeoHtml({
   benefits = [],
   path: merchantPath,
   siteUrl,
-  now = new Date()
+  now = new Date(),
+  bootstrapBusiness = null
 }) {
   const canonicalPath = merchantPath || getMerchantSeoPathFromMerchant(merchant);
   const absoluteUrl = toAbsoluteUrl(siteUrl, canonicalPath);
@@ -627,7 +641,8 @@ export function renderMerchantSeoHtml({
     description,
     absoluteUrl,
     imageUrl,
-    structuredData
+    structuredData,
+    bootstrapBusiness
   });
   const bodyHtml = buildBodyHtml({
     merchant,
