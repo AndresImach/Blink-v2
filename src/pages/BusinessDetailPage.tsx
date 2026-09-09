@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { Business, BankBenefit } from '../types';
-import { fetchBusinessById } from '../services/api';
+import { fetchBusinessById, normalizeBusinesses } from '../services/api';
 import { trackSelectBusiness, trackStartNavigation, trackViewBenefit } from '../analytics/intentTracking';
 import { getBankAccent } from '../utils/bankColors';
 import { useSEO } from '../hooks/useSEO';
@@ -114,6 +114,36 @@ const INITIAL_SHOW = 2;
 
 type ViewMode = 'por-beneficio' | 'sucursal' | null;
 
+const MERCHANT_BOOTSTRAP_ELEMENT_ID = 'blink-merchant-bootstrap';
+
+const readMerchantBootstrap = (merchantId: string): Business | null => {
+  if (!merchantId || typeof document === 'undefined') return null;
+
+  const element = document.getElementById(MERCHANT_BOOTSTRAP_ELEMENT_ID);
+  if (!element?.textContent) return null;
+
+  try {
+    const payload = JSON.parse(element.textContent) as {
+      merchantId?: unknown;
+      business?: Partial<Business>;
+    };
+    const business = payload.business;
+    if (
+      payload.merchantId !== merchantId ||
+      business?.id !== merchantId ||
+      typeof business.name !== 'string' ||
+      !Array.isArray(business.location) ||
+      !Array.isArray(business.benefits)
+    ) {
+      return null;
+    }
+
+    return normalizeBusinesses([business], { includeExpired: true })[0] || null;
+  } catch {
+    return null;
+  }
+};
+
 
 function BusinessDetailPage() {
   const { id, slugId } = useParams<{ id?: string; slugId?: string }>();
@@ -125,8 +155,13 @@ function BusinessDetailPage() {
   const routePassedBusiness = passedBusiness && (!routeMerchantId || passedBusiness.id === routeMerchantId)
     ? passedBusiness
     : null;
-  const [business, setBusiness] = useState<Business | null>(routePassedBusiness || null);
-  const [loading, setLoading] = useState(!routePassedBusiness);
+  const bootstrapBusiness = useMemo(
+    () => readMerchantBootstrap(routeMerchantId),
+    [routeMerchantId],
+  );
+  const initialBusiness = bootstrapBusiness || routePassedBusiness;
+  const [business, setBusiness] = useState<Business | null>(initialBusiness || null);
+  const [loading, setLoading] = useState(!initialBusiness);
   const [error, setError] = useState<string | null>(null);
   const businessViewSignatureRef = useRef('');
   const containerRef = useRef<HTMLDivElement>(null);
@@ -264,6 +299,13 @@ function BusinessDetailPage() {
   });
 
   useEffect(() => {
+    if (bootstrapBusiness) {
+      setBusiness(bootstrapBusiness);
+      setError(null);
+      setLoading(false);
+      return;
+    }
+
     if (routePassedBusiness) {
       setBusiness(routePassedBusiness);
       setError(null);
@@ -308,7 +350,7 @@ function BusinessDetailPage() {
 
     load();
     return () => { cancelled = true; };
-  }, [routeMerchantId, routePassedBusiness]);
+  }, [bootstrapBusiness, routeMerchantId, routePassedBusiness]);
 
   useEffect(() => {
     if (!business) return;

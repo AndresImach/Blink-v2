@@ -5,7 +5,7 @@ import ts from 'typescript';
 import { DEFAULT_CANONICAL_SITE_URL, resolveCanonicalSiteUrl } from '../api/canonical-site.js';
 import { SEO_CATEGORY_DEFINITIONS } from '../api/category-seo-data.js';
 import { buildLandingSeoRoutesFromMerchants } from '../api/landing-seo-data.js';
-import { slugify } from '../api/search/normalize.js';
+import { buildMerchantRoutes, buildSitemapIndex, buildUrlset } from './seo-sitemap.js';
 
 const DEFAULT_SITE_URL = DEFAULT_CANONICAL_SITE_URL;
 const DEFAULT_DATABASE_NAME = 'benefitsV3';
@@ -60,8 +60,6 @@ const landingMaxCityRoutesPerCombination = Number.parseInt(
   process.env.SITEMAP_LANDING_MAX_CITY_ROUTES_PER_COMBO || '5',
   10,
 );
-
-const today = new Date().toISOString().split('T')[0];
 
 const baseRoutes = [
   { path: '/', changefreq: 'daily', priority: '1.0' },
@@ -122,21 +120,6 @@ function readClientLandingRouteAllowlist() {
   };
 }
 
-function escapeXml(value) {
-  return String(value)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&apos;');
-}
-
-function getMerchantSeoPath(merchant) {
-  const merchantId = String(merchant?.merchantId || '').trim();
-  const merchantSlug = slugify(merchant?.merchantName || '') || 'comercio';
-  return `/comercios/${merchantSlug}--${encodeURIComponent(merchantId)}`;
-}
-
 async function loadMerchantSeoDocuments() {
   if (!mongoUri) {
     console.warn('[seo] MONGODB_URI_READ_ONLY is not set. Skipping dynamic merchant and landing sitemap URLs.');
@@ -152,7 +135,7 @@ async function loadMerchantSeoDocuments() {
         {
           isActive: { $ne: false },
           merchantId: { $exists: true, $type: 'string' },
-          benefitCount: { $gt: 0 },
+          activeBenefitCount: { $gt: 0 },
         },
         {
           projection: {
@@ -175,16 +158,6 @@ async function loadMerchantSeoDocuments() {
   }
 }
 
-function buildMerchantRoutes(merchants) {
-  return merchants
-    .filter((merchant) => String(merchant.merchantId || '').trim())
-    .map((merchant) => ({
-      path: getMerchantSeoPath(merchant),
-      changefreq: 'weekly',
-      priority: '0.8',
-    }));
-}
-
 const merchantDocuments = await loadMerchantSeoDocuments();
 const merchantRoutes = buildMerchantRoutes(merchantDocuments);
 const landingMerchantDocuments = merchantDocuments.filter((merchant) => {
@@ -199,44 +172,6 @@ const landingRoutes = buildLandingSeoRoutesFromMerchants(landingMerchantDocument
 });
 const routes = [...baseRoutes, ...categorySeoRoutes, ...landingRoutes, ...merchantRoutes];
 const uniqueRoutes = Array.from(new Map(routes.map((route) => [route.path, route])).values());
-
-function buildUrlset(routeChunk) {
-  const xmlUrls = routeChunk
-  .map((route) => {
-    return [
-      '  <url>',
-      `    <loc>${escapeXml(`${siteUrl}${route.path}`)}</loc>`,
-      `    <lastmod>${route.lastmod || today}</lastmod>`,
-      `    <changefreq>${route.changefreq}</changefreq>`,
-      `    <priority>${route.priority}</priority>`,
-      '  </url>',
-    ].join('\n');
-  })
-  .join('\n');
-
-  return `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${xmlUrls}
-</urlset>
-`;
-}
-
-function buildSitemapIndex(sitemapPaths) {
-  const sitemapEntries = sitemapPaths
-    .map((sitemapPath) => [
-      '  <sitemap>',
-      `    <loc>${escapeXml(`${siteUrl}${sitemapPath}`)}</loc>`,
-      `    <lastmod>${today}</lastmod>`,
-      '  </sitemap>',
-    ].join('\n'))
-    .join('\n');
-
-  return `<?xml version="1.0" encoding="UTF-8"?>
-<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${sitemapEntries}
-</sitemapindex>
-`;
-}
 
 const robotsContent = `# Aggressive SEO / AI crawlers that add no organic-search value but sweep the
 # full sitemap, forcing cold server-side renders (Mongo + HTML) on every hit.
@@ -311,14 +246,14 @@ if (!shouldPreserveExistingSitemap) {
   }
 
   if (sitemapChunks.length <= 1) {
-    fs.writeFileSync(sitemapPath, buildUrlset(sitemapChunks[0] || []), 'utf8');
+    fs.writeFileSync(sitemapPath, buildUrlset(sitemapChunks[0] || [], siteUrl), 'utf8');
   } else {
     const sitemapPaths = sitemapChunks.map((chunk, index) => {
       const childPath = `/sitemap-${index + 1}.xml`;
-      fs.writeFileSync(path.join(publicDir, `sitemap-${index + 1}.xml`), buildUrlset(chunk), 'utf8');
+      fs.writeFileSync(path.join(publicDir, `sitemap-${index + 1}.xml`), buildUrlset(chunk, siteUrl), 'utf8');
       return childPath;
     });
-    fs.writeFileSync(sitemapPath, buildSitemapIndex(sitemapPaths), 'utf8');
+    fs.writeFileSync(sitemapPath, buildSitemapIndex(sitemapPaths, siteUrl), 'utf8');
   }
 }
 

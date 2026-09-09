@@ -92,6 +92,7 @@ const MERCHANT_SEO_PROJECTION = {
   imageUrl: 1,
   logoUrl: 1,
   coverUrl: 1,
+  'searchProfile.description': 1,
   isActive: 1
 };
 const BENEFIT_SUMMARY_PROJECTION = {
@@ -3250,11 +3251,34 @@ async function handleMerchantSeoPage(req, res, url, db, slugId, options = {}) {
   const benefits = sortBenefitSummariesForDisplay(
     rawBenefits.map((benefit) => buildBusinessBenefitSummary(benefit, cardNameLookup))
   );
+  const locations = dedupeLocations(Array.isArray(merchant.locations) ? merchant.locations : []);
+  const bootstrapBusiness = {
+    id: merchant.merchantId,
+    name: merchant.merchantName,
+    category: Array.isArray(merchant.categories) && merchant.categories.length > 0
+      ? merchant.categories[0]
+      : 'otros',
+    description: merchant.searchProfile?.description || '',
+    rating: 5,
+    location: locations,
+    image: pickBusinessImage(merchant),
+    benefits,
+    benefitCount: Number(merchant.benefitCount || benefits.length),
+    locationCount: locations.length,
+    banks: Array.isArray(merchant.banks) && merchant.banks.length > 0
+      ? merchant.banks
+      : getBenefitSummaryProviderNames(benefits),
+    maxDiscountPercentage: Number(
+      merchant.maxDiscountPercentage || getMaxBenefitSummaryDiscount(benefits)
+    ),
+    hasOnline: Boolean(merchant.hasOnlineBenefits)
+  };
   const appShell = options.appShell || readViteAppShell();
   const renderedHtml = renderMerchantSeoHtml({
     appShell,
     merchant,
     benefits,
+    bootstrapBusiness,
     path: canonicalPath,
     siteUrl: options.siteUrl || getCanonicalSiteUrl(url),
     now: options.now || new Date()

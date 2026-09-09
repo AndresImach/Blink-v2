@@ -17,7 +17,8 @@ const routerMocks = vi.hoisted(() => ({
 }));
 
 vi.mock('../../services/api', () => ({
-  fetchBusinessById: vi.fn()
+  fetchBusinessById: vi.fn(),
+  normalizeBusinesses: vi.fn((businesses: Business[]) => businesses)
 }));
 
 vi.mock('../../analytics/intentTracking', () => ({
@@ -100,6 +101,7 @@ describe('BusinessDetailPage', () => {
   });
 
   afterEach(() => {
+    document.getElementById('blink-merchant-bootstrap')?.remove();
     vi.useRealTimers();
   });
 
@@ -149,6 +151,51 @@ describe('BusinessDetailPage', () => {
         expect.objectContaining({
           path: '/comercios/mostaza--merchant_69a6f741b7ff0ecb9e33cf58'
         }),
+      );
+    });
+  });
+
+  it('reuses the server-rendered business on canonical merchant URLs', async () => {
+    routerMocks.mockUseParams.mockReturnValue({
+      slugId: 'mostaza--merchant_69a6f741b7ff0ecb9e33cf58'
+    });
+    routerMocks.mockUseLocation.mockReturnValue({
+      state: null,
+      pathname: '/comercios/mostaza--merchant_69a6f741b7ff0ecb9e33cf58'
+    });
+    const bootstrap = document.createElement('script');
+    bootstrap.id = 'blink-merchant-bootstrap';
+    bootstrap.type = 'application/json';
+    bootstrap.textContent = JSON.stringify({
+      merchantId: mockBusiness.id,
+      business: mockBusiness,
+    });
+    document.head.appendChild(bootstrap);
+
+    render(<BusinessDetailPage />);
+
+    expect(await screen.findByText('Mostaza')).toBeInTheDocument();
+    expect(fetchBusinessById).not.toHaveBeenCalled();
+    expect(routerMocks.mockNavigate).not.toHaveBeenCalled();
+  });
+
+  it('ignores server-rendered data for a different merchant', async () => {
+    const bootstrap = document.createElement('script');
+    bootstrap.id = 'blink-merchant-bootstrap';
+    bootstrap.type = 'application/json';
+    bootstrap.textContent = JSON.stringify({
+      merchantId: 'merchant_other',
+      business: { ...mockBusiness, id: 'merchant_other' },
+    });
+    document.head.appendChild(bootstrap);
+    vi.mocked(fetchBusinessById).mockResolvedValue(mockBusiness);
+
+    render(<BusinessDetailPage />);
+
+    await waitFor(() => {
+      expect(fetchBusinessById).toHaveBeenCalledWith(
+        'merchant_69a6f741b7ff0ecb9e33cf58',
+        { includeExpired: true },
       );
     });
   });
